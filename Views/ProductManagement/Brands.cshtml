@@ -1,0 +1,62 @@
+@model IEnumerable<TmtInventoryApp.Models.DealerPortal.ProductBrand>
+
+@{
+    var category = ViewBag.Category as TmtInventoryApp.Models.DealerPortal.ProductCategory;
+    ViewData["Title"] = $"{category?.Name} - Brands";
+    Layout = "~/Views/Shared/_DealerPortalLayout.cshtml";
+}
+
+<div class="row align-items-center mb-4">
+    <div class="col">
+        <h2 class="page-title">@category?.Name Brands</h2>
+    </div>
+    <div class="col-auto">
+        <a asp-action="Index" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-arrow-left me-2"></i>Back to Categories
+        </a>
+        <a asp-action="CreateBrand" asp-route-categoryId="@category?.Id" class="btn btn-primary-gradient">
+            <i class="bi bi-plus-lg me-1"></i>Add Brand
+        </a>
+    </div>
+</div>
+
+<div class="card table-card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Brand Name</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var brand in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold fs-5">@brand.Name</td>
+                            <td>@brand.Description</td>
+                            <td>
+                                @if (brand.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inactive</span>
+                                }
+                            </td>
+                            <td>
+                                <a href="/DealerPortal/DealerInventory/AddStock?productBrandId=@brand.Id" class="btn btn-sm btn-primary-gradient">
+                                    <i class="bi bi-plus-lg me-1"></i>Add to Stock
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

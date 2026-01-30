@@ -1,0 +1,98 @@
+@model IEnumerable<TmtInventoryApp.Models.DealerPortal.DealerInventoryItem>
+
+@{
+    ViewData["Title"] = "Manage Inventory";
+    Layout = "~/Views/Shared/_DealerPortalLayout.cshtml";
+}
+
+<div class="row mb-4">
+    <div class="col-md-12 text-end">
+        <a asp-action="AddStock" class="btn btn-primary-gradient">
+            <i class="bi bi-plus-circle me-2"></i>Add Stock
+        </a>
+    </div>
+</div>
+
+<div class="card table-card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Product Category</th>
+                        <th>Brand</th>
+                        <th>Current Stock</th>
+                        <th>Unit Price</th>
+                        <th>Stock Value</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Any())
+                    {
+                        foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="fw-bold">@item.ProductBrand?.ProductCategory?.Name</span>
+                                </td>
+                                <td>@item.ProductBrand?.Name</td>
+                                <td>
+                                    <span class="badge @(item.CurrentQuantity <= (item.MinimumStockLevel ?? 0) ? "bg-danger" : "bg-success") text-white" style="font-size: 0.9rem;">
+                                        @item.CurrentQuantity @item.ProductBrand?.ProductCategory?.UnitOfMeasurement
+                                    </span>
+                                    @if(item.CurrentQuantity <= (item.MinimumStockLevel ?? 0))
+                                    {
+                                        <small class="text-danger d-block mt-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>Low Stock</small>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.UnitPrice.HasValue)
+                                    {
+                                        @:₹@item.UnitPrice.Value.ToString("N2")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.UnitPrice.HasValue)
+                                    {
+                                        <span class="fw-bold">₹@((item.CurrentQuantity * item.UnitPrice.Value).ToString("N2"))</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group">
+                                        <a asp-action="AdjustStock" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" title="Adjust Stock">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="Edit Details">
+                                            <i class="bi bi-gear"></i>
+                                        </a>
+                                        <a asp-action="Transactions" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info" title="View History">
+                                            <i class="bi bi-clock-history"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <i class="bi bi-box-seam display-4 text-muted mb-3 d-block"></i>
+                                <span class="text-muted">No inventory items found. Click "Add Stock" to get started.</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

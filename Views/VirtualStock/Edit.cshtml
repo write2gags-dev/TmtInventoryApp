@@ -1,0 +1,72 @@
+@model TmtInventoryApp.Models.VirtualStock
+
+@{
+    ViewData["Title"] = "Adjust Virtual Stock";
+}
+
+<div class="container">
+    <h2>Adjust Virtual Stock</h2>
+    <p class="text-muted">Manually adjust virtual stock for @Model.TmtVariant?.DisplayName</p>
+    <hr />
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Current Stock Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-6">TMT Variant:</dt>
+                        <dd class="col-sm-6">@Model.TmtVariant?.DisplayName</dd>
+
+                        <dt class="col-sm-6">Current Weight (Tons):</dt>
+                        <dd class="col-sm-6">@Model.AvailableWeightTons.ToString("N3") Tons</dd>
+
+                        <dt class="col-sm-6">Current Bundles:</dt>
+                        <dd class="col-sm-6">@Model.AvailableBundles Bundles</dd>
+
+                        <dt class="col-sm-6">Last Updated:</dt>
+                        <dd class="col-sm-6">@Model.LastUpdated.ToString("dd MMM yyyy hh:mm tt")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Adjust Stock</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label">New Weight (Tons)</label>
+                            <input type="number" name="newWeightTons" class="form-control" step="0.001" value="@Model.AvailableWeightTons.ToString("0.000")" required />
+                            <div class="form-text">Enter the new total weight in Tons</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Number of Bundles</label>
+                            <input type="number" name="newBundles" class="form-control" step="1" min="0" value="@Model.AvailableBundles" required />
+                            <div class="form-text">Enter the total number of bundles</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notes</label>
+                            <textarea name="notes" class="form-control" rows="3" placeholder="Reason for adjustment..."></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Save Adjustment</button>
+                            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

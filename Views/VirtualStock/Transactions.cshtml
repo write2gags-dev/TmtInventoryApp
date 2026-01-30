@@ -1,0 +1,107 @@
+@model IEnumerable<TmtInventoryApp.Models.VirtualStockTransaction>
+
+@{
+    ViewData["Title"] = "Transaction History";
+    var virtualStock = ViewBag.VirtualStock as TmtInventoryApp.Models.VirtualStock;
+}
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Transaction History</h2>
+            <p class="text-muted">@virtualStock?.TmtVariant?.DisplayName</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Index" class="btn btn-secondary">Back to Virtual Stock</a>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Current Stock Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Available Weight (Tons)</h6>
+                    <h4>@virtualStock?.AvailableWeightTons.ToString("N3") Tons</h4>
+                </div>
+                <div class="col-md-6">
+                    <h6>Last Updated</h6>
+                    <h4>@virtualStock?.LastUpdated.ToString("dd MMM yyyy")</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Weight (KG)</th>
+                                <th>Reference</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var transaction in Model)
+                            {
+                                <tr class="@(transaction.TransactionType == TmtInventoryApp.Models.VirtualStockTransactionType.Deduction ? "table-danger" : "table-success")">
+                                    <td>@transaction.TransactionDate.ToString("dd MMM yyyy hh:mm tt")</td>
+                                    <td>
+                                        @if (transaction.TransactionType == TmtInventoryApp.Models.VirtualStockTransactionType.Addition)
+                                        {
+                                            <span class="badge bg-success">Addition</span>
+                                        }
+                                        else if (transaction.TransactionType == TmtInventoryApp.Models.VirtualStockTransactionType.Deduction)
+                                        {
+                                            <span class="badge bg-danger">Deduction</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning">Adjustment</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (transaction.TransactionType == TmtInventoryApp.Models.VirtualStockTransactionType.Deduction)
+                                        {
+                                            <span class="text-danger">-@transaction.WeightKg.ToString("N2")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-success">+@transaction.WeightKg.ToString("N2")</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(transaction.ReferenceType))
+                                        {
+                                            <span>@transaction.ReferenceType</span>
+                                            @if (transaction.ReferenceId.HasValue)
+                                            {
+                                                <span> #@transaction.ReferenceId</span>
+                                            }
+                                        }
+                                    </td>
+                                    <td>@transaction.Notes</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <h5>No transactions found</h5>
+            <p>There are no transactions recorded for this virtual stock entry yet.</p>
+        </div>
+    }
+</div>

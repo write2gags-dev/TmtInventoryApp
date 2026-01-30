@@ -1,0 +1,163 @@
+@using TmtInventoryApp.Models.ViewModels
+@model BulkOpeningBalanceViewModel
+
+@{
+    ViewData["Title"] = "Bulk Entry - Opening Balances";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="bi bi-table"></i> Bulk Entry - Opening Balances</h2>
+            <p class="text-muted">Enter opening balances for all variants at once for a dealer</p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-person-circle"></i> Step 1: Select Dealer</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" asp-action="BulkEntry" class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">Select Dealer</label>
+                    <select name="dealerId" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Choose a dealer --</option>
+                        @foreach (var item in (SelectList)ViewData["Dealers"]!)
+                        {
+                            <option value="@item.Value" selected="@(item.Value == Model.DealerId.ToString())">@item.Text</option>
+                        }
+                    </select>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.DealerId > 0)
+    {
+        <form asp-action="BulkEntry" method="post">
+            <input type="hidden" asp-for="DealerId" />
+            <input type="hidden" asp-for="DealerName" />
+            
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-grid-3x3-gap-fill"></i> Step 2: Enter Balances for @Model.DealerName</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label asp-for="AsOfDate" class="form-label">As of Date</label>
+                            <input asp-for="AsOfDate" type="date" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <h6><i class="bi bi-info-circle-fill"></i> Quick Guide:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Positive (+)</strong>: Dealer owes you weight</li>
+                            <li><strong>Negative (-)</strong>: You owe dealer weight</li>
+                            <li>Leave as <strong>0</strong> if no opening balance for that variant</li>
+                            <li>Only non-zero entries will be saved</li>
+                        </ul>
+                    </div>
+
+                    <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover table-sm align-middle">
+                            <thead class="table-dark sticky-top">
+                                <tr class="text-center">
+                                    <th style="width: 25%;">Variant</th>
+                                    <th style="width: 30%;">Opening Balance (kg)</th>
+                                    <th style="width: 45%;">Notes (Optional)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.Variants.Count; i++)
+                                {
+                                    <input type="hidden" asp-for="Variants[i].TmtVariantId" />
+                                    <input type="hidden" asp-for="Variants[i].VariantName" />
+                                    <input type="hidden" asp-for="Variants[i].ExistingId" />
+                                    
+                                    <tr class="@(Model.Variants[i].OpeningBalanceKg != 0 ? "table-warning" : "")">
+                                        <td class="text-center fw-bold">
+                                            <span class="badge bg-secondary fs-6">@Model.Variants[i].VariantName</span>
+                                        </td>
+                                        <td>
+                                            <input asp-for="Variants[i].OpeningBalanceKg" 
+                                                   type="number" 
+                                                   step="0.01" 
+                                                   class="form-control form-control-sm text-end"
+                                                   placeholder="0.00"
+                                                   style="font-weight: bold; font-size: 1.1em;" />
+                                        </td>
+                                        <td>
+                                            <input asp-for="Variants[i].Notes" 
+                                                   type="text" 
+                                                   class="form-control form-control-sm" 
+                                                   placeholder="Optional notes..." />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle-fill"></i> Save All Balances
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6><i class="bi bi-calculator"></i> Quick Calculation Helper</h6>
+                <p class="small text-muted mb-0">
+                    <strong>Remember:</strong> Opening Balance = Total Weight Sold (historically) - Total Weight Billed (historically)<br/>
+                    <strong>Example:</strong> If you gave 5,000 kg but only billed 4,000 kg → Opening Balance = +1,000 kg (dealer owes you)
+                </p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-secondary text-center">
+            <i class="bi bi-arrow-up-circle" style="font-size: 3em;"></i>
+            <h5 class="mt-3">Please select a dealer above to begin</h5>
+        </div>
+    }
+</div>
+
+<style>
+    .sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .table-warning {
+        background-color: #fff3cd !important;
+    }
+</style>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        // Highlight rows with non-zero values
+        document.querySelectorAll('input[type="number"]').forEach(input => {
+            input.addEventListener('input', function() {
+                const row = this.closest('tr');
+                if (parseFloat(this.value) !== 0) {
+                    row.classList.add('table-warning');
+                } else {
+                    row.classList.remove('table-warning');
+                }
+            });
+        });
+    </script>
+}

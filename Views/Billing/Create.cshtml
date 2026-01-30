@@ -1,0 +1,159 @@
+@model TmtInventoryApp.Models.BillingRecord
+
+@{
+    ViewData["Title"] = "Add Billing Record";
+    var variants = ViewData["TmtVariants"] as List<TmtInventoryApp.Models.TmtVariant>;
+}
+
+<div class="container">
+    <h2>Add Billing Record</h2>
+    <p class="text-muted">Record weight that has been billed to a dealer</p>
+    <hr />
+
+    <form asp-action="Create" method="post" id="billingForm">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label asp-for="DealerId" class="form-label"></label>
+                    <select asp-for="DealerId" class="form-select" asp-items="ViewBag.DealerId">
+                        <option value="">-- Select Dealer --</option>
+                    </select>
+                    <span asp-validation-for="DealerId" class="text-danger"></span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label asp-for="BillingDate" class="form-label"></label>
+                    <input asp-for="BillingDate" class="form-control" type="date" />
+                    <span asp-validation-for="BillingDate" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="InvoiceNumber" class="form-label"></label>
+            <input asp-for="InvoiceNumber" class="form-control" />
+            <span asp-validation-for="InvoiceNumber" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Notes" class="form-label"></label>
+            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+            <span asp-validation-for="Notes" class="text-danger"></span>
+        </div>
+
+        <h4>Billing Items (matrix view)</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered" id="itemsMatrix">
+                <thead>
+                    @{
+                        var flatVariants = new List<TmtInventoryApp.Models.TmtVariant>();
+                        if (variants != null)
+                        {
+                            var bars = variants.Where(v => v.Diameter > 0).ToList();
+                            var wire = variants.Where(v => (!string.IsNullOrWhiteSpace(v.Name) && v.Name.IndexOf("wire", StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+                            var nail = variants.Where(v => (!string.IsNullOrWhiteSpace(v.Name) && v.Name.IndexOf("nail", StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+                            var ring = variants.Where(v => (!string.IsNullOrWhiteSpace(v.Name) && v.Name.IndexOf("ring", StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+                            var others = variants.Except(bars).Except(wire).Except(nail).Except(ring).ToList();
+
+                            var groups = new List<(string Title, List<TmtInventoryApp.Models.TmtVariant> Items)>();
+                            if (bars.Any()) groups.Add(("TMT Bars", bars));
+                            if (wire.Any()) groups.Add(("WIRE", wire));
+                            if (nail.Any()) groups.Add(("Nail (bAG)", nail));
+                            if (ring.Any()) groups.Add(("Ring", ring));
+                            if (others.Any()) groups.Add(("Misc", others));
+
+                            foreach (var g in groups)
+                            {
+                                flatVariants.AddRange(g.Items);
+                            }
+
+                            // Top header: group labels
+                            <tr>
+                                <th></th>
+                                @foreach (var g in groups)
+                                {
+                                    <th colspan="@g.Items.Count" class="text-center">@g.Title</th>
+                                }
+                                <th>Total</th>
+                            </tr>
+
+                            // Sub-header: individual columns
+                            <tr>
+                                <th>Weight Sold (Enter Number here)</th>
+                                @for (int i = 0; i < flatVariants.Count; i++)
+                                {
+                                    <th>@(flatVariants[i].Diameter > 0 ? flatVariants[i].Diameter + " mm" : "")<br /><small>@flatVariants[i].DisplayName</small></th>
+                                }
+                                <th>Total</th>
+                            </tr>
+                        }
+                    }
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="align-middle">Billed Weight (Tons)</td>
+                        @{
+                            if (flatVariants != null && flatVariants.Any())
+                            {
+                                for (int i = 0; i < flatVariants.Count; i++)
+                                {
+                                    <td>
+                                        <input type="hidden" name="Items[@i].TmtVariantId" value="@flatVariants[i].Id" />
+                                        <input type="number" name="Items[@i].BilledWeightTons" class="form-control matrix-input" step="0.001" min="0" placeholder="0.000" />
+                                    </td>
+                                }
+                            }
+                        }
+                        <td>
+                            <strong id="matrixTotal">0.000</strong>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mb-3 mt-3">
+            <button type="submit" class="btn btn-primary">Save Billing Record</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function clearRow(btn) {
+            var cell = $(btn).closest('td');
+            cell.find('input[type="number"]').val('');
+            updateMatrixTotal();
+        }
+
+        function updateMatrixTotal() {
+            var sum = 0;
+            document.querySelectorAll('#itemsMatrix .matrix-input').forEach(function(inp) {
+                var v = parseFloat(inp.value);
+                if (!isNaN(v)) sum += v;
+            });
+            document.getElementById('matrixTotal').textContent = sum.toFixed(3);
+        }
+
+        // Recompute on input
+        document.addEventListener('input', function(e) {
+            if (e.target && e.target.classList && e.target.classList.contains('matrix-input')) {
+                updateMatrixTotal();
+            }
+        });
+
+        document.getElementById('billingForm').addEventListener('submit', function(e) {
+            // Do not disable inputs, let them post even if empty so indices remain sequential
+            return true;
+        });
+
+        // Initialize total on load
+        updateMatrixTotal();
+    </script>
+}

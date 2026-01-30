@@ -1,0 +1,45 @@
+@model TmtInventoryApp.Models.DealerPortal.DealerInventoryItem
+
+@{
+    ViewData["Title"] = "Edit Inventory Item";
+    Layout = "~/Views/Shared/_DealerPortalLayout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card stat-card">
+            <div class="card-body p-4">
+                <h4 class="card-title mb-4">Edit Item Details</h4>
+                <div class="alert alert-info py-2">
+                    <small><strong>Product:</strong> @Model.ProductBrand?.ProductCategory?.Name - @Model.ProductBrand?.Name</small>
+                </div>
+
+                <form asp-action="Edit" method="post">
+                    <input type="hidden" name="id" value="@Model.Id" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Unit Price (₹)</label>
+                        <input type="number" step="0.01" name="unitPrice" class="form-control" value="@Model.UnitPrice" placeholder="0.00" />
+                        <div class="form-text">Selling price per unit.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Minimum Stock Level</label>
+                        <input type="number" step="0.01" name="minimumStockLevel" class="form-control" value="@Model.MinimumStockLevel" placeholder="0.00" />
+                        <div class="form-text">Get alerted when stock falls below this level.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Notes</label>
+                        <textarea name="notes" class="form-control" rows="3">@Model.Notes</textarea>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary-gradient">Save Changes</button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

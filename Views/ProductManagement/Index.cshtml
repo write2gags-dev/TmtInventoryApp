@@ -1,0 +1,41 @@
+@model IEnumerable<TmtInventoryApp.Models.DealerPortal.ProductCategory>
+
+@{
+    ViewData["Title"] = "Product Catalog";
+    Layout = "~/Views/Shared/_DealerPortalLayout.cshtml";
+}
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            This catalog shows all available product categories and brands master data.
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    @foreach (var category in Model)
+    {
+        <div class="col-md-4">
+            <div class="card stat-card h-100">
+                <div class="card-body text-center p-4">
+                    <div class="icon mx-auto mb-3" style="background: var(--primary-gradient); color: white; width: 80px; height: 80px; border-radius: 50%; font-size: 32px;">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <h3 class="card-title mb-2">@category.Name</h3>
+                    <p class="text-muted mb-4">@category.Description</p>
+                    
+                    <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded mb-3">
+                        <span>Available Brands</span>
+                        <span class="badge bg-primary rounded-pill">@category.Brands.Count</span>
+                    </div>
+
+                    <a asp-action="Brands" asp-route-categoryId="@category.Id" class="btn btn-outline-primary w-100">
+                        View Brands
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>

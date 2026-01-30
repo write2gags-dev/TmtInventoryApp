@@ -1,0 +1,240 @@
+@model IEnumerable<TmtInventoryApp.Models.PurchaseRecord>
+@{
+    ViewData["Title"] = "Purchase Log";
+    var variants = ViewBag.Variants as List<TmtInventoryApp.Models.TmtVariant> ?? new();
+}
+
+<div class="container-fluid">
+    <h1 class="mb-4">Virtual Stock Management (Kolkata:Stock Received Log)</h1>
+
+    <!-- As per Kolkata Stock (Virtual) Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-building"></i> As per Kolkata Stock (Virtual)</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0 text-center align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 150px;" class="bg-light">Parameter</th>
+                            @foreach (var v in variants)
+                            {
+                                <th>@v.DisplayName</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var virtualStocks = ViewBag.VirtualStocks as List<TmtInventoryApp.Models.VirtualStock> ?? new();
+                            
+                            // Weight Row
+                            <tr>
+                                <td class="fw-bold bg-info bg-opacity-10">Available Weight (Tons)</td>
+                                @foreach (var v in variants)
+                                {
+                                    var stock = virtualStocks?.FirstOrDefault(vs => vs.TmtVariantId == v.Id);
+                                    <td class="bg-info bg-opacity-10 fw-bold">
+                                        @((stock?.AvailableWeightTons ?? 0).ToString("N3"))
+                                    </td>
+                                }
+                            </tr>
+
+                            // Actions Row
+                            <tr>
+                                <td class="text-muted small">Actions</td>
+                                @foreach (var v in variants)
+                                {
+                                    var stock = virtualStocks?.FirstOrDefault(vs => vs.TmtVariantId == v.Id);
+                                    <td>
+                                        @if (stock != null && Context.Session.GetString("Role") == UserRoles.Admin)
+                                        {
+                                            <a asp-action="Adjust" asp-route-id="@stock.Id" class="btn btn-outline-secondary btn-sm py-0" style="font-size: 0.75rem;" title="Adjust Stock">
+                                                <i class="bi bi-pencil"></i> Adjust
+                                            </a>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Context.Session.GetString("Role")))
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Kolkata:New Stock Received Entry</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm align-middle">
+                            <thead class="table-light text-center">
+                                <tr>
+                                    <th rowspan="2" style="min-width: 120px;">Received Date</th>
+                                    <th rowspan="2" style="min-width: 100px;">Invoice #</th>
+                                    <th rowspan="2" style="min-width: 100px;">Vehicle #</th>
+                                    <th colspan="@variants.Count" class="bg-warning bg-opacity-25">Bundles Received (Enter Number)</th>
+                                    <th colspan="@variants.Count" class="bg-info bg-opacity-25">Weight (In TON)</th>
+                                    <th rowspan="2" style="min-width: 100px;">Total Weight (Tons)</th>
+                                    <th rowspan="2" style="min-width: 100px;">Shortage (KG)</th>
+                                    <th rowspan="2">Action</th>
+                                </tr>
+                                <tr>
+                                    @foreach (var v in variants)
+                                    {
+                                        <th class="small text-muted">@v.DisplayName</th>
+                                    }
+                                    @foreach (var v in variants)
+                                    {
+                                        <th class="small text-muted">@v.DisplayName</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <input type="date" name="purchaseDate" class="form-control form-control-sm" required value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                    </td>
+                                    <td>
+                                        <input type="text" name="invoiceNumber" class="form-control form-control-sm" placeholder="Inv#" />
+                                    </td>
+                                    <td>
+                                        <input type="text" name="vehicleNumber" class="form-control form-control-sm" placeholder="Veh#" />
+                                    </td>
+                                    
+                                    <!-- Bundles Inputs -->
+                                    @foreach (var v in variants)
+                                    {
+                                        <td>
+                                            <input type="number" name="bundles[@v.Id]" class="form-control form-control-sm text-center weight-input" style="min-width: 60px;" placeholder="0" data-variant-id="@v.Id" />
+                                        </td>
+                                    }
+
+                                    <!-- Weight Inputs -->
+                                    @foreach (var v in variants)
+                                    {
+                                        <td>
+                                            <input type="number" step="0.001" name="weights[@v.Id]" class="form-control form-control-sm text-center weight-input" style="min-width: 70px;" placeholder="0.000" data-variant-id="@v.Id" />
+                                        </td>
+                                    }
+                                    
+                                    <!-- Total Weight (Auto-calculated) -->
+                                    <td>
+                                        <input type="text" id="totalWeight" class="form-control form-control-sm text-center bg-light" readonly placeholder="0.000" />
+                                    </td>
+                                    
+                                    <!-- Shortage (Manual Entry) -->
+                                    <td>
+                                        <input type="number" step="0.001" name="shortage" class="form-control form-control-sm text-center" style="min-width: 80px;" placeholder="0.000" />
+                                    </td>
+                                    
+                                    <td>
+                                        <button type="submit" class="btn btn-success btn-sm">Save</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Stock Received History (Last 12 Months)</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover table-sm mb-0 text-center" style="font-size: 0.9rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th rowspan="2">Date</th>
+                            <th rowspan="2">Invoice #</th>
+                            <th rowspan="2">Vehicle #</th>
+                            <th colspan="@variants.Count" class="bg-warning bg-opacity-10">Bundles</th>
+                            <th colspan="@variants.Count" class="bg-info bg-opacity-10">Weight (Tons)</th>
+                            <th rowspan="2">Total Weight (Tons)</th>
+                            <th rowspan="2">Shortage (KG)</th>
+                        </tr>
+                        <tr>
+                            @foreach (var v in variants)
+                            {
+                                <th class="small text-muted">@v.DisplayName</th>
+                            }
+                            @foreach (var v in variants)
+                            {
+                                <th class="small text-muted">@v.DisplayName</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.PurchaseDate.ToString("dd-MM-yyyy")</td>
+                                <td>@item.InvoiceNumber</td>
+                                <td>@item.VehicleNumber</td>
+
+                                <!-- Bundles -->
+                                @foreach (var v in variants)
+                                {
+                                    var recordItem = item.Items.FirstOrDefault(i => i.TmtVariantId == v.Id);
+                                    <td class="@(recordItem?.Bundles > 0 ? "fw-bold" : "text-muted")">
+                                        @(recordItem?.Bundles > 0 ? recordItem.Bundles.ToString() : "-")
+                                    </td>
+                                }
+
+                                <!-- Weights -->
+                                @foreach (var v in variants)
+                                {
+                                    var recordItem = item.Items.FirstOrDefault(i => i.TmtVariantId == v.Id);
+                                    <td class="@(recordItem?.WeightTons > 0 ? "fw-bold" : "text-muted")">
+                                        @(recordItem?.WeightTons > 0 ? recordItem.WeightTons.ToString("N3") : "-")
+                                    </td>
+                                }
+                                
+                                <!-- Total Weight -->
+                                <td class="fw-bold bg-light">@item.TotalWeight.ToString("N3")</td>
+                                
+                                <!-- Shortage -->
+                                <td class="@(item.Shortage > 0 ? "text-danger fw-bold" : "text-muted")">
+                                    @(item.Shortage > 0 ? item.Shortage.ToString("N3") : "-")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-calculate Total Weight when weight inputs change
+        document.addEventListener('DOMContentLoaded', function() {
+            const weightInputs = document.querySelectorAll('input[name^="weights["]');
+            const totalWeightField = document.getElementById('totalWeight');
+            
+            function calculateTotalWeight() {
+                let total = 0;
+                weightInputs.forEach(input => {
+                    const value = parseFloat(input.value) || 0;
+                    total += value;
+                });
+                totalWeightField.value = total.toFixed(3);
+            }
+            
+            // Attach event listeners to all weight inputs
+            weightInputs.forEach(input => {
+                input.addEventListener('input', calculateTotalWeight);
+            });
+        });
+    </script>
+}

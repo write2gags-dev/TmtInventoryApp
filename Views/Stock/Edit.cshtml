@@ -1,0 +1,55 @@
+@model TmtInventoryApp.Models.StockEntry
+
+@{
+    ViewData["Title"] = "Edit Stock";
+}
+
+<h1>Edit Stock</h1>
+
+<h4>Stock Entry</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+            <div class="form-group mb-3">
+                <label asp-for="TmtVariantId" class="control-label">TMT Variant (Diameter)</label>
+                <select asp-for="TmtVariantId" class="form-control" asp-items="ViewBag.TmtVariantId"></select>
+                <span asp-validation-for="TmtVariantId" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="QuantityBundles" class="control-label"></label>
+                <input asp-for="QuantityBundles" class="form-control" />
+                <span asp-validation-for="QuantityBundles" class="text-danger"></span>
+            </div>
+            
+            @if (Context.Session.GetString("Role") == "Admin")
+            {
+                <div class="form-group mb-3">
+                    <label asp-for="WeightTons" class="control-label">Weight (Tons)</label>
+                    <input asp-for="WeightTons" class="form-control" step="0.001" type="number" />
+                    <span asp-validation-for="WeightTons" class="text-danger"></span>
+                    <small class="form-text text-muted">Admin only: Manually enter weight in Tons (e.g., 0.025 for 25 kg)</small>
+                </div>
+            }
+            else
+            {
+                <input type="hidden" asp-for="WeightTons" />
+            }
+            
+            <!-- Hidden fields -->
+            <input type="hidden" asp-for="PiecesPerBundle" />
+            <input type="hidden" asp-for="LoosePieces" />
+            <input type="hidden" asp-for="CreatedAt" />
+            <div class="form-group">
+                <input type="submit" value="Save" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

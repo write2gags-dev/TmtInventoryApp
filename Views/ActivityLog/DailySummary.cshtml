@@ -1,0 +1,147 @@
+@model IEnumerable<TmtInventoryApp.Models.ActivityLog>
+
+@{
+    ViewData["Title"] = "Daily Activity Summary";
+    var selectedDate = ViewBag.SelectedDate as DateTime? ?? DateTime.Today;
+    var summary = ViewBag.Summary as dynamic;
+    var totalActivities = ViewBag.TotalActivities as int? ?? 0;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>Daily Activity Summary</h1>
+            <p class="text-muted">Track all activities happening in your TMT Inventory system</p>
+        </div>
+    </div>
+
+    <!-- Date Picker -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <form method="get" class="form-inline">
+                <label class="mr-2">Select Date:</label>
+                <input type="date" name="date" class="form-control mr-2" value="@selectedDate.ToString("yyyy-MM-dd")" />
+                <button type="submit" class="btn btn-primary">View</button>
+                <a asp-action="DailySummary" class="btn btn-secondary ml-2">Today</a>
+            </form>
+        </div>
+        <div class="col-md-6 text-right">
+            <a asp-action="Index" class="btn btn-info">View Full History</a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h3>@totalActivities</h3>
+                    <p>Total Activities</p>
+                </div>
+            </div>
+        </div>
+        @if (summary != null)
+        {
+            @foreach (var item in summary)
+            {
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <h3>@item.Count</h3>
+                            <p>@item.ActivityType</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+
+    <!-- Activity Details -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5>Activity Details - @selectedDate.ToString("dddd, MMMM dd, yyyy")</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Type</th>
+                                        <th>Action</th>
+                                        <th>Description</th>
+                                        <th>User</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var activity in Model)
+                                    {
+                                        <tr>
+                                            <td>@activity.Timestamp.ToString("HH:mm:ss")</td>
+                                            <td>
+                                                <span class="badge badge-primary">@activity.ActivityType</span>
+                                            </td>
+                                            <td>
+                                                @if (activity.Action == "Created")
+                                                {
+                                                    <span class="badge badge-success">@activity.Action</span>
+                                                }
+                                                else if (activity.Action == "Deleted")
+                                                {
+                                                    <span class="badge badge-danger">@activity.Action</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-warning">@activity.Action</span>
+                                                }
+                                            </td>
+                                            <td>@activity.Description</td>
+                                            <td>@(activity.UserName ?? "System")</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(activity.AdditionalDetails))
+                                                {
+                                                    <small class="text-muted">@activity.AdditionalDetails</small>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No activities recorded for @selectedDate.ToString("MMMM dd, yyyy")
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .badge {
+        font-size: 0.85em;
+        padding: 0.4em 0.6em;
+    }
+    
+    .form-inline label {
+        margin-right: 10px;
+    }
+    
+    .form-inline .form-control {
+        margin-right: 10px;
+    }
+</style>

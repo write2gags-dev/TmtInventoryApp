@@ -1,0 +1,150 @@
+@model IEnumerable<TmtInventoryApp.Models.ActivityLog>
+
+@{
+    ViewData["Title"] = "Activity Log History";
+    var startDate = ViewBag.StartDate as DateTime? ?? DateTime.Today.AddDays(-7);
+    var endDate = ViewBag.EndDate as DateTime? ?? DateTime.Today;
+    var activityTypes = ViewBag.ActivityTypes as List<string> ?? new List<string>();
+    var selectedType = ViewBag.ActivityType as string;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>Activity Log History</h1>
+            <p class="text-muted">View and filter all activities in your system</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="form-inline">
+                        <div class="form-group mr-3">
+                            <label class="mr-2">Start Date:</label>
+                            <input type="date" name="startDate" class="form-control" value="@startDate.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="form-group mr-3">
+                            <label class="mr-2">End Date:</label>
+                            <input type="date" name="endDate" class="form-control" value="@endDate.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="form-group mr-3">
+                            <label class="mr-2">Activity Type:</label>
+                            <select name="activityType" class="form-control">
+                                <option value="">All Types</option>
+                                @foreach (var type in activityTypes)
+                                {
+                                    <option value="@type" selected="@(type == selectedType)">@type</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <a asp-action="Index" class="btn btn-secondary ml-2">Reset</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity List -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5>Activities (@Model.Count() records)</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Type</th>
+                                        <th>Action</th>
+                                        <th>Description</th>
+                                        <th>User</th>
+                                        <th>Entity</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var activity in Model)
+                                    {
+                                        <tr>
+                                            <td>@activity.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                            <td>
+                                                <span class="badge badge-primary">@activity.ActivityType</span>
+                                            </td>
+                                            <td>
+                                                @if (activity.Action == "Created")
+                                                {
+                                                    <span class="badge badge-success">@activity.Action</span>
+                                                }
+                                                else if (activity.Action == "Deleted")
+                                                {
+                                                    <span class="badge badge-danger">@activity.Action</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-warning">@activity.Action</span>
+                                                }
+                                            </td>
+                                            <td>@activity.Description</td>
+                                            <td>@(activity.UserName ?? "System")</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(activity.EntityType))
+                                                {
+                                                    <small class="text-muted">@activity.EntityType #@activity.EntityId</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(activity.AdditionalDetails))
+                                                {
+                                                    <small>@activity.AdditionalDetails</small>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> No activities found for the selected criteria
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-md-12 text-center">
+            <a asp-action="DailySummary" class="btn btn-info">
+                <i class="fas fa-calendar-day"></i> View Today's Summary
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-inline .form-group {
+        display: flex;
+        align-items: center;
+    }
+    
+    .form-inline label {
+        margin-bottom: 0;
+    }
+    
+    .badge {
+        font-size: 0.85em;
+        padding: 0.4em 0.6em;
+    }
+</style>

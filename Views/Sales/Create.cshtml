@@ -1,0 +1,36 @@
+@model TmtInventoryApp.Models.SalesOrder
+
+@{
+    ViewData["Title"] = "Create Sales Order";
+}
+
+<h1>Create Sales Order</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="form-group mb-3">
+                <label asp-for="DealerId" class="control-label">Dealer</label>
+                <select asp-for="DealerId" class="form-select" asp-items="ViewBag.DealerId">
+                    <option value="">-- Select Dealer --</option>
+                </select>
+                <span asp-validation-for="DealerId" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="OrderDate" class="control-label"></label>
+                <input asp-for="OrderDate" class="form-control" type="date" />
+                <span asp-validation-for="OrderDate" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create Order" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

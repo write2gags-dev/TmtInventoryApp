@@ -1,0 +1,58 @@
+﻿@model TmtInventoryApp.Models.ViewModels.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="text-center mb-4">
+    <h1 class="display-4">Inventory Overview</h1>
+    <p>Real-time stock tracking for your TMT Bar business.</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-header">Total Weight</div>
+            <div class="card-body">
+                <h2 class="card-title">@((Model.TotalWeightKg / 1000.0).ToString("N3")) Tons</h2>
+                <p class="card-text">Total weight of all stock in inventory.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-header">Total Bundles</div>
+            <div class="card-body">
+                <h2 class="card-title">@Model.TotalBundles</h2>
+                <p class="card-text">Total number of bundles across all variants.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h3 class="mb-3">Stock Breakdown</h3>
+<div class="table-responsive">
+    <table class="table table-hover table-bordered">
+        <thead class="thead-dark">
+            <tr>
+                <th>Variant</th>
+                <th>Bundles</th>
+                <th>Total Weight (Tons)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.StockSummary)
+            {
+                <tr>
+                    <td>@item.VariantName</td>
+                    <td>@item.QuantityBundles</td>
+                    <td>@((item.TotalWeight / 1000.0).ToString("N3"))</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<div class="text-center mt-4">
+    <a asp-controller="Stock" asp-action="Index" class="btn btn-primary btn-lg">Manage Inventory</a>
+</div>

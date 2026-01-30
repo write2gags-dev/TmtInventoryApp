@@ -1,0 +1,533 @@
+@using TmtInventoryApp.Models.ViewModels
+@model TmtInventoryApp.Models.ViewModels.ReconciliationSummaryViewModel
+
+@{
+    ViewData["Title"] = "Business Health Dashboard";
+    var criticalItems = Model.Items.Where(i => i.RiskLevel == ReconciliationRiskLevel.Critical).ToList();
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2>@ViewData["Title"]</h2>
+                <p class="text-muted">Quick check for billing vs stock discrepancies</p>
+            </div>
+            <div>
+                <a asp-action="Analysis" class="btn btn-success me-2">
+                    <i class="bi bi-graph-up"></i> Physical Stock Analysis
+                </a>
+                <a asp-action="WeightStats" class="btn btn-primary">
+                    <i class="bi bi-calculator"></i> Weight Variance Analysis
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.HasCriticalShortages)
+    {
+        <!-- CRITICAL SHORTAGES - PROMINENT ALERT -->
+        <div class="alert alert-danger border-danger shadow-lg mb-4" role="alert">
+            <div class="d-flex align-items-center mb-3">
+                <i class="bi bi-exclamation-triangle-fill fs-1 me-3"></i>
+                <div>
+                    <h3 class="alert-heading mb-1">⚠️ CRITICAL SHORTAGE ALERT!</h3>
+                    <p class="mb-0 fs-5">You have over-billed items without sufficient stock - POTENTIAL LOSS RISK!</p>
+                </div>
+            </div>
+            
+            <hr>
+            
+            <h5 class="mb-3">Critical Items Requiring Immediate Attention:</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered bg-white">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Dealer</th>
+                            <th>Variant</th>
+                            <th class="text-end">Sold (Tons)</th>
+                            <th class="text-end">Billed (Tons)</th>
+                            <th class="text-end">Over-Billed By</th>
+                            <th class="text-end">Physical Stock</th>
+                            <th class="text-end">Virtual Stock</th>
+                            <th class="text-end bg-danger text-white">SHORTAGE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in criticalItems)
+                        {
+                            <tr class="fw-bold">
+                                <td>@item.DealerName</td>
+                                <td>@item.TmtVariantName</td>
+                                <td class="text-end">
+                                    @item.TotalSoldWeightTons.ToString("N3") T
+                                    <small class="text-muted d-block">(@item.TotalSoldWeightKg.ToString("N2") KG)</small>
+                                </td>
+                                <td class="text-end">
+                                    @item.TotalBilledWeightTons.ToString("N3") T
+                                    <small class="text-muted d-block">(@item.TotalBilledWeightKg.ToString("N2") KG)</small>
+                                </td>
+                                <td class="text-end text-danger">
+                                    @Math.Abs(item.DifferenceWeightTons).ToString("N3") Tons
+                                    <small class="text-muted d-block">(@Math.Abs(item.DifferenceWeightKg).ToString("N2") KG)</small>
+                                </td>
+                                <td class="text-end">
+                                    @item.PhysicalStockWeightTons.ToString("N3") Tons
+                                    @if (item.PhysicalStockShortageKg > 0)
+                                    {
+                                        <small class="text-danger d-block">(Short by @item.PhysicalStockShortageTons.ToString("N3") T)</small>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @item.VirtualStockWeightTons.ToString("N3") Tons
+                                    @if (item.VirtualStockShortageKg > 0)
+                                    {
+                                        <small class="text-danger d-block">(Short by @item.VirtualStockShortageTons.ToString("N3") T)</small>
+                                    }
+                                </td>
+                                <td class="text-end bg-danger text-white">
+                                    @if (item.PhysicalStockShortageKg > 0)
+                                    {
+                                        <div>Physical: @item.PhysicalStockShortageTons.ToString("N3") T</div>
+                                    }
+                                    @if (item.VirtualStockShortageKg > 0)
+                                    {
+                                        <div>Virtual: @item.VirtualStockShortageTons.ToString("N3") T</div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="alert alert-warning mt-3 mb-0">
+                <strong><i class="bi bi-info-circle"></i> What this means:</strong> 
+                You've billed dealers for more stock than you've sold to them, but you don't have enough physical or virtual stock to fulfill the over-billed amount. 
+                This indicates a potential loss situation that needs immediate attention.
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- ALL CLEAR MESSAGE -->
+        <div class="alert alert-success border-success shadow mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-check-circle-fill fs-1 me-3"></i>
+                <div>
+                    <h4 class="alert-heading mb-1">✅ All Clear - No Critical Shortages</h4>
+                    <p class="mb-0">All over-billed items have sufficient stock available. No loss risk detected.</p>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Quick Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card @(Model.TotalOverBilledWeightKg > 0 ? "border-warning" : "border-secondary")">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">
+                        <i class="bi bi-arrow-up-circle"></i> Total Over-Billed
+                    </h6>
+                    <h3 class="mb-0 @(Model.TotalOverBilledWeightKg > 0 ? "text-warning" : "")">
+                        @((Model.TotalOverBilledWeightKg / 1000m).ToString("N3")) Tons
+                    </h3>
+                    <small class="text-muted">You owe this weight to dealers</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card @(Model.TotalUnderBilledWeightKg > 0 ? "border-info" : "border-secondary")">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">
+                        <i class="bi bi-arrow-down-circle"></i> Total Under-Billed
+                    </h6>
+                    <h3 class="mb-0 @(Model.TotalUnderBilledWeightKg > 0 ? "text-info" : "")">
+                        @((Model.TotalUnderBilledWeightKg / 1000m).ToString("N3")) Tons
+                    </h3>
+                    <small class="text-muted">Dealers owe you payment for this</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUMMARY TABLE: Overall & Variant-Wise Stock Analysis -->
+    <div class="card mb-4 border-primary">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-bar-chart-fill"></i> Stock Allocation Summary</h5>
+            <small>Quick overview: How much you need to allocate vs. what's available in physical stock</small>
+        </div>
+        <div class="card-body">
+            @if (!Model.VariantSummaries.Any())
+            {
+                <div class="alert alert-info mb-0">No stock data available yet.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr class="text-center">
+                                <th class="text-start">Diameter / Variant</th>
+                                <th>Total Sold Weight (kg)</th>
+                                <th>Total Billed Weight (kg)</th>
+                                <th>Net Difference (kg)</th>
+                                <th>Owed to Dealers (kg)</th>
+                                <th>Physical Stock (kg)</th>
+                                <th>Kolkata Virtual Stock (kg)</th>
+                                <th>Surplus / Loss Weight (kg)</th>
+                                <th>Net Available After Obligations (kg)</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var v in Model.VariantSummaries)
+                            {
+                                // Physical already includes Kolkata when received
+                                var actualLocalStock = v.PhysicalStockKg - v.VirtualStockKg; // True local stock
+                                var needsToAllocate = v.NetDifferenceKg > 0 ? v.NetDifferenceKg : 0;
+                                
+                                <tr class="text-center">
+                                    <td class="text-start">
+                                        <strong class="text-primary">@v.VariantName</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info text-dark fs-6">@v.TotalSoldKg.ToString("N0")</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark fs-6">@v.TotalBilledKg.ToString("N0")</span>
+                                    </td>
+                                    <td class="@(v.NetDifferenceKg >= 0 ? "text-success" : "text-danger")">
+                                        <strong>@v.NetDifferenceKg.ToString("N0")</strong>
+                                        @if (v.NetDifferenceKg > 0)
+                                        {
+                                            <br/><small class="text-muted">(Dealers owe you)</small>
+                                        }
+                                        else if (v.NetDifferenceKg < 0)
+                                        {
+                                            <br/><small class="text-muted">(You owe dealers)</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (v.TotalOwedToDealersKg > 0)
+                                        {
+                                            <span class="badge bg-danger fs-6">@v.TotalOwedToDealersKg.ToString("N0")</span>
+                                            <br/><small class="text-muted">(@(v.TotalOwedToDealersKg/1000).ToString("N2") T)</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success fs-6">@v.PhysicalStockKg.ToString("N0")</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary fs-6">@v.VirtualStockKg.ToString("N0")</span>
+                                    </td>
+                                    <td class="@(v.SurplusLossKg >= 0 ? "" : "table-danger")">
+                                        <strong class="@(v.SurplusLossKg >= 0 ? "text-success" : "text-danger")">@v.SurplusLossKg.ToString("N0")</strong>
+                                        <br/><small class="text-muted">(@(v.SurplusLossKg/1000).ToString("N2") T)</small>
+                                    </td>
+                                    <td class="@(v.NetAvailableAfterObligationsKg >= 0 ? "bg-success-subtle" : "bg-danger-subtle")">
+                                        <strong class="@(v.NetAvailableAfterObligationsKg >= 0 ? "text-success" : "text-danger") fs-5">@v.NetAvailableAfterObligationsKg.ToString("N0")</strong>
+                                        <br/><small class="text-muted">(@(v.NetAvailableAfterObligationsKg/1000).ToString("N2") T)</small>
+                                    </td>
+                                    <td class="text-start">
+                                        @if (v.NetAvailableAfterObligationsKg >= 0)
+                                        {
+                                            <span class="text-success">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                                Net surplus of <strong>@v.NetAvailableAfterObligationsKg.ToString("N0") kg</strong> after all obligations.
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            var shortage = Math.Abs(v.NetAvailableAfterObligationsKg);
+                                            <span class="text-danger fw-bold">
+                                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                                Net shortage! Need to procure <strong>@shortage.ToString("N0") kg</strong> more.
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            @{
+                                var sumSold = Model.VariantSummaries.Sum(x => x.TotalSoldKg);
+                                var sumBilled = Model.VariantSummaries.Sum(x => x.TotalBilledKg);
+                                var sumNet = Model.VariantSummaries.Sum(x => x.NetDifferenceKg);
+                                var sumOwedToDealers = Model.VariantSummaries.Sum(x => x.TotalOwedToDealersKg);
+                                var sumPhysical = Model.VariantSummaries.Sum(x => x.PhysicalStockKg);
+                                var sumVirtual = Model.VariantSummaries.Sum(x => x.VirtualStockKg);
+                                var sumSurplusLoss = Model.VariantSummaries.Sum(x => x.SurplusLossKg);
+                                var sumNetAvailable = Model.VariantSummaries.Sum(x => x.NetAvailableAfterObligationsKg);
+                                var totalNeedToAllocate = sumNet > 0 ? sumNet : 0;
+                                var sumTotalAvailable = sumPhysical + sumVirtual;
+                                var overallCanFulfillPhysical = sumPhysical >= totalNeedToAllocate;
+                                var overallCanFulfillCombined = sumTotalAvailable >= totalNeedToAllocate;
+                            }
+                            <tr class="text-center fw-bold">
+                                <th class="text-start">OVERALL TOTAL</th>
+                                <th>
+                                    <span class="badge bg-info text-dark fs-6">@sumSold.ToString("N0")</span>
+                                    <br/><small class="text-muted">(@(sumSold/1000).ToString("N2") Tons)</small>
+                                </th>
+                                <th>
+                                    <span class="badge bg-warning text-dark fs-6">@sumBilled.ToString("N0")</span>
+                                    <br/><small class="text-muted">(@(sumBilled/1000).ToString("N2") Tons)</small>
+                                </th>
+                                <th class="@(sumNet >= 0 ? "text-danger" : "text-success")">
+                                    @sumNet.ToString("N0")
+                                    <br/><small class="text-muted">(@(sumNet/1000).ToString("N2") Tons)</small>
+                                </th>
+                                <th>
+                                    @if (sumOwedToDealers > 0)
+                                    {
+                                        <span class="badge bg-danger fs-6">@sumOwedToDealers.ToString("N0")</span>
+                                        <br/><small class="text-muted">(@(sumOwedToDealers/1000).ToString("N2") Tons)</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </th>
+                                <th>
+                                    <span class="badge bg-success fs-6">@sumPhysical.ToString("N0")</span>
+                                    <br/><small class="text-muted">(@(sumPhysical/1000).ToString("N2") Tons)</small>
+                                </th>
+                                <th>
+                                    <span class="badge bg-primary fs-6">@sumVirtual.ToString("N0")</span>
+                                    <br/><small class="text-muted">(@(sumVirtual/1000).ToString("N2") Tons)</small>
+                                </th>
+                                <th class="@(sumSurplusLoss >= 0 ? "" : "table-danger")">
+                                    <strong class="@(sumSurplusLoss >= 0 ? "text-success" : "text-danger")">@sumSurplusLoss.ToString("N0")</strong>
+                                    <br/><small class="text-muted">(@(sumSurplusLoss/1000).ToString("N2") Tons)</small>
+                                </th>
+                                <th class="@(sumNetAvailable >= 0 ? "bg-success" : "bg-danger")">
+                                    <strong class="@(sumNetAvailable >= 0 ? "text-white" : "text-white") fs-5">@sumNetAvailable.ToString("N0")</strong>
+                                    <br/><small class="text-white">(@(sumNetAvailable/1000).ToString("N2") Tons)</small>
+                                </th>
+                                <th class="text-start">
+                                    @if (sumNetAvailable >= 0)
+                                    {
+                                        <span class="text-success">
+                                            <i class="bi bi-check-circle-fill"></i>
+                                            Overall net surplus: <strong>@sumNetAvailable.ToString("N0") kg</strong> after all obligations.
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        var shortage = Math.Abs(sumNetAvailable);
+                                        <span class="text-danger fw-bold">
+                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                            Overall net shortage: <strong>@shortage.ToString("N0") kg</strong>. Need to procure!
+                                        </span>
+                                    }
+                                </th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div class="alert alert-light mt-3 mb-0">
+                    <h6><i class="bi bi-lightbulb-fill"></i> How to read this table:</h6>
+                    <ul class="mb-0 small">
+                        <li><strong>Net Difference (Positive):</strong> Dealers owe you (you gave more stock than billed to them)</li>
+                        <li><strong>Net Difference (Negative):</strong> You owe dealers stock (you billed more than you've actually given)</li>
+                        <li><strong>Owed to Dealers:</strong> Total over-billed amount you need to fulfill (stock liability)</li>
+                        <li><strong>Physical Stock:</strong> Total stock in your stockyard (includes Kolkata stock that has been received)</li>
+                        <li><strong>Kolkata Virtual Stock:</strong> Stock at Kolkata location (Shymasteel) - Note: This is already counted in Physical Stock when received</li>
+                        <li><strong>Surplus/Loss Weight:</strong> (Physical - Kolkata) + Net Difference. <span class="text-success">Positive = Surplus</span>, <span class="text-danger">Negative = Shortage</span></li>
+                        <li><strong>Net Available After Obligations:</strong> Your actual usable stock after fulfilling what you owe dealers. This is the real available stock!</li>
+                        <li><strong>Example:</strong> Physical = 22,000 kg, Owed to Dealers = 20,000 kg. Net Available = 22,000 - 20,000 = <strong class="text-success">2,000 kg available</strong> for new orders.</li>
+                    </ul>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Dealer Reconciliation Analysis (variant totals) -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Detailed Reconciliation Analysis - Variant Totals</h5>
+            <small class="text-muted">Detailed view: Total Sold vs Billed vs Physical stock and surplus/shortage by diameter/variant</small>
+        </div>
+        <div class="card-body">
+            @if (!Model.VariantSummaries.Any())
+            {
+                <div class="alert alert-info mb-0">No reconciliation data available yet.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-sm text-center align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-start">Diameter / Variant</th>
+                                <th>Total Sold (KG)</th>
+                                <th>Total Billed (KG)</th>
+                                <th>Net Difference (KG)</th>
+                                <th>Physical Stock (KG)</th>
+                                <th>Surplus / Short (KG)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var v in Model.VariantSummaries)
+                            {
+                                <tr>
+                                    <td class="text-start fw-bold">@v.VariantName</td>
+                                    <td>@v.TotalSoldKg.ToString("N0")</td>
+                                    <td>@v.TotalBilledKg.ToString("N0")</td>
+                                    <td class="@(v.NetDifferenceKg >= 0 ? "text-success" : "text-danger")">@v.NetDifferenceKg.ToString("N0")</td>
+                                    <td>@v.PhysicalStockKg.ToString("N0")</td>
+                                    <td class="@(v.SurplusLossKg >= 0 ? "text-success fw-bold" : "text-danger fw-bold")">@v.SurplusLossKg.ToString("N0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-dark">
+                            @{
+                                var sumSold = Model.VariantSummaries.Sum(x => x.TotalSoldKg);
+                                var sumBilled = Model.VariantSummaries.Sum(x => x.TotalBilledKg);
+                                var sumNet = Model.VariantSummaries.Sum(x => x.NetDifferenceKg);
+                                var sumPhysical = Model.VariantSummaries.Sum(x => x.PhysicalStockKg);
+                                var sumSurplus = Model.VariantSummaries.Sum(x => x.SurplusLossKg);
+                            }
+                            <tr>
+                                <th class="text-start">Grand Total</th>
+                                <th>@sumSold.ToString("N0")</th>
+                                <th>@sumBilled.ToString("N0")</th>
+                                <th class="@(sumNet >= 0 ? "text-success" : "text-danger")">@sumNet.ToString("N0")</th>
+                                <th>@sumPhysical.ToString("N0")</th>
+                                <th class="@(sumSurplus >= 0 ? "text-success fw-bold" : "text-danger fw-bold")">@sumSurplus.ToString("N0")</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Full Details (Collapsible) -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <button class="btn btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#fullDetails">
+                    <i class="bi bi-list-ul"></i> View Full Reconciliation Details
+                </button>
+            </h5>
+        </div>
+        <div id="fullDetails" class="collapse">
+            <div class="card-body">
+                @if (!Model.Items.Any())
+                {
+                    <div class="alert alert-info">
+                        <p class="mb-0">No sales or billing records found.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Dealer</th>
+                                    <th>Variant</th>
+                                    <th class="text-end">Sold</th>
+                                    <th class="text-end">Billed</th>
+                                    <th class="text-end">Difference</th>
+                                    <th class="text-end">Physical Stock</th>
+                                    <th class="text-end">Virtual Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Items)
+                                {
+                                    var rowClass = item.RiskLevel switch
+                                    {
+                                        ReconciliationRiskLevel.Critical => "table-danger",
+                                        ReconciliationRiskLevel.OverBilledWithStock => "table-warning",
+                                        ReconciliationRiskLevel.UnderBilled => "table-info",
+                                        _ => ""
+                                    };
+
+                                    <tr class="@rowClass">
+                                        <td>
+                                            @switch (item.RiskLevel)
+                                            {
+                                                case ReconciliationRiskLevel.Critical:
+                                                    <span class="badge bg-danger">CRITICAL</span>
+                                                    break;
+                                                case ReconciliationRiskLevel.OverBilledWithStock:
+                                                    <span class="badge bg-warning text-dark">Over-Billed</span>
+                                                    break;
+                                                case ReconciliationRiskLevel.UnderBilled:
+                                                    <span class="badge bg-info">Under-Billed</span>
+                                                    break;
+                                                default:
+                                                    <span class="badge bg-success">OK</span>
+                                                    break;
+                                            }
+                                        </td>
+                                        <td>@item.DealerName</td>
+                                        <td>@item.TmtVariantName</td>
+                                        <td class="text-end">@item.TotalSoldWeightTons.ToString("N3") T</td>
+                                        <td class="text-end">@item.TotalBilledWeightTons.ToString("N3") T</td>
+                                        <td class="text-end">
+                                            @if (item.IsOverBilled)
+                                            {
+                                                <span class="text-danger fw-bold">+@item.DifferenceWeightTons.ToString("N3") T</span>
+                                            }
+                                            else if (item.IsUnderBilled)
+                                            {
+                                                <span class="text-info fw-bold">@item.DifferenceWeightTons.ToString("N3") T</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-success">0.000 T</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">@item.PhysicalStockWeightTons.ToString("N3") T</td>
+                                        <td class="text-end">@item.VirtualStockWeightTons.ToString("N3") T</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="mt-3">
+                        <h6>Legend:</h6>
+                        <ul class="small">
+                            <li><strong>Difference:</strong> Billed Weight - Sold Weight</li>
+                            <li><strong>Positive Difference (Red):</strong> Over-billed - You owe stock to dealer (Liability)</li>
+                            <li><strong>Negative Difference (Blue):</strong> Under-billed - Dealer owes you payment (Asset)</li>
+                            <li><strong>Critical Status:</strong> Over-billed AND insufficient physical/virtual stock to fulfill</li>
+                        </ul>
+                    </div>
+
+                    <!-- Example Scenario -->
+                    <div class="alert alert-light mt-3">
+                        <h6><i class="bi bi-lightbulb"></i> Example:</h6>
+                        <p class="mb-0 small">
+                            If dealer has been billed for 3 tons of 8mm but you've only sold 1 ton, the difference is +2 tons (over-billed).
+                            The system checks if you have 2 tons of 8mm in your physical stockyard. If not, it shows a critical shortage.
+                        </p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-refresh every 5 minutes
+        setTimeout(function() {
+            location.reload();
+        }, 300000);
+    </script>
+}

@@ -1,0 +1,85 @@
+@model TmtInventoryApp.Models.StockEntry
+
+@{
+    ViewData["Title"] = "Add New Stock";
+    var variants = ViewData["TmtVariants"] as List<TmtInventoryApp.Models.TmtVariant> ?? new();
+}
+
+<div class="container-fluid">
+    <h1>Add New Stock (Physical)</h1>
+    <p class="text-muted">Add offline purchases or manual stock entries directly to physical inventory.</p>
+    <hr />
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">New Stock Entry</h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm align-middle">
+                        <thead class="table-light text-center">
+                            <tr>
+                                <th rowspan="2" style="min-width: 150px;">Invoice Date</th>
+                                <th rowspan="2" style="min-width: 150px;">Invoice Number</th>
+                                <th colspan="@variants.Count" class="bg-warning bg-opacity-25">Quantity (Bundles)</th>
+                                <th colspan="@variants.Count" class="bg-info bg-opacity-25">Weight (Tons)</th>
+                                <th rowspan="2">Action</th>
+                            </tr>
+                            <tr>
+                                @foreach (var v in variants)
+                                {
+                                    <th class="small text-muted">@v.DisplayName</th>
+                                }
+                                @foreach (var v in variants)
+                                {
+                                    <th class="small text-muted">@v.DisplayName</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <input type="date" name="invoiceDate" class="form-control form-control-sm" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                </td>
+                                <td>
+                                    <input type="text" name="invoiceNumber" class="form-control form-control-sm" placeholder="Invoice #" />
+                                </td>
+                                
+                                @* Bundles Inputs *@
+                                @foreach (var v in variants)
+                                {
+                                    <td>
+                                        <input type="number" name="bundles[@v.Id]" class="form-control form-control-sm text-center" min="0" placeholder="0" style="min-width: 60px;" />
+                                    </td>
+                                }
+
+                                @* Weight Inputs *@
+                                @foreach (var v in variants)
+                                {
+                                    <td>
+                                        <input type="number" name="weights[@v.Id]" class="form-control form-control-sm text-center" min="0" step="0.001" placeholder="0.000" style="min-width: 80px;" />
+                                    </td>
+                                }
+
+                                <td class="text-center">
+                                    <button type="submit" class="btn btn-success btn-sm">
+                                        <i class="bi bi-plus-circle"></i> Add Stock
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

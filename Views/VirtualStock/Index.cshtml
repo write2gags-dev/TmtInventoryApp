@@ -1,0 +1,92 @@
+@using TmtInventoryApp.Models
+@model IEnumerable<TmtInventoryApp.Models.VirtualStock>
+
+@{
+    ViewData["Title"] = "Virtual Stock (Shymasteel)";
+}
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Virtual Stock Management</h2>
+            <p class="text-muted">Shymasteel company virtual stock - deducted when billing is done</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <form asp-action="Initialize" method="post" style="display: inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success">Initialize All Variants</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Note:</strong> This virtual stock is automatically deducted when billing records are created. 
+        Negative values indicate that more material has been billed than is available in virtual stock.
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>TMT Variant</th>
+                                <th>Available Weight (Tons)</th>
+                                <th>Available Bundles</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr class="@(item.AvailableWeightKg < 0 ? "table-danger" : item.AvailableWeightKg == 0 ? "table-warning" : "")">
+                                    <td>
+                                        <strong>@item.TmtVariant?.DisplayName</strong>
+                                    </td>
+                                    <td>
+                                        @item.AvailableWeightTons.ToString("N3") Tons
+                                    </td>
+                                    <td>
+                                        @item.AvailableBundles Bundles
+                                    </td>
+                                    <td>
+                                        @item.LastUpdated.ToString("dd MMM yyyy hh:mm tt")
+                                    </td>
+                                    <td>
+                                        <a asp-action="AddStock" asp-route-id="@item.Id" class="btn btn-sm btn-success me-1">
+                                            <i class="bi bi-plus-lg"></i> Add Stock
+                                        </a>
+                                        @if (Context.Session.GetString("Role") == UserRoles.Admin)
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary me-1">Adjust</a>
+                                        }
+
+                                        <a asp-action="Transactions" asp-route-id="@item.Id" class="btn btn-sm btn-outline-info">History</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-secondary">
+                                <td><strong>Total</strong></td>
+                                <td><strong>@Model.Sum(m => m.AvailableWeightTons).ToString("N3") Tons</strong></td>
+                                <td><strong>@Model.Sum(m => m.AvailableBundles) Bundles</strong></td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning">
+            <h5>No virtual stock entries found</h5>
+            <p>Click "Initialize All Variants" to create virtual stock entries for all TMT variants.</p>
+        </div>
+    }
+</div>

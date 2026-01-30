@@ -1,0 +1,150 @@
+@model IEnumerable<TmtInventoryApp.Models.ViewModels.DealerBillingSummary>
+
+@{
+    ViewData["Title"] = "Dealer Billing Status";
+}
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h2>Dealer Billing Status</h2>
+            <p class="text-muted">Compare sold weight vs billed weight per dealer</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a asp-action="Index" class="btn btn-secondary">Back to Billing Records</a>
+            <a asp-action="Create" class="btn btn-primary">Add Billing Record</a>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Legend:</strong>
+        <span class="badge bg-danger ms-2">Red</span> = Dealer needs to bill more weight (material delivered but not billed)
+        <span class="badge bg-success ms-2">Green</span> = Fully billed or over-billed
+    </div>
+
+    @foreach (var summary in Model)
+    {
+        <div class="card mb-3">
+            <div class="card-header @(summary.TotalDifferenceWeightKg > 0 ? "bg-danger text-white" : "bg-success text-white")">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h5 class="mb-0">
+                            @summary.Dealer.Name
+                            @if (!string.IsNullOrEmpty(summary.Dealer.ContactPerson))
+                            {
+                                <small class="ms-2">(@summary.Dealer.ContactPerson)</small>
+                            }
+                        </h5>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <a asp-action="DealerDetails" asp-route-id="@summary.Dealer.Id" class="btn btn-sm btn-light">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h6>Total Sold</h6>
+                            <h4>@summary.TotalSoldWeightKg.ToString("N2") KG</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h6>Total Billed</h6>
+                            <h4>@summary.TotalBilledWeightKg.ToString("N2") KG</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 @(summary.TotalDifferenceWeightKg > 0 ? "bg-danger" : "bg-success") text-white rounded">
+                            <h6>Difference</h6>
+                            <h4>@Math.Abs(summary.TotalDifferenceWeightKg).ToString("N2") KG</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 bg-light rounded">
+                            <h6>Status</h6>
+                            <h4>
+                                @if (summary.TotalDifferenceWeightKg > 0)
+                                {
+                                    <span class="badge bg-danger">Needs to Bill</span>
+                                }
+                                else if (summary.TotalDifferenceWeightKg < 0)
+                                {
+                                    <span class="badge bg-warning">Over Billed</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Balanced</span>
+                                }
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+
+                <h6>Breakdown by TMT Variant:</h6>
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th>TMT Variant</th>
+                            <th>Sold Weight (KG)</th>
+                            <th>Billed Weight (KG)</th>
+                            <th>Difference (KG)</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var status in summary.VariantStatus)
+                        {
+                            <tr class="@(status.DifferenceWeightKg > 0 ? "table-danger" : status.DifferenceWeightKg < 0 ? "table-warning" : "table-success")">
+                                <td>@status.TmtVariantName</td>
+                                <td>@status.TotalSoldWeightKg.ToString("N2")</td>
+                                <td>@status.TotalBilledWeightKg.ToString("N2")</td>
+                                <td>
+                                    <strong>
+                                        @if (status.DifferenceWeightKg > 0)
+                                        {
+                                            <span class="text-danger">+@status.DifferenceWeightKg.ToString("N2")</span>
+                                        }
+                                        else if (status.DifferenceWeightKg < 0)
+                                        {
+                                            <span class="text-warning">@status.DifferenceWeightKg.ToString("N2")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-success">0.00</span>
+                                        }
+                                    </strong>
+                                </td>
+                                <td>
+                                    @if (status.NeedsToBill)
+                                    {
+                                        <span class="badge bg-danger">Needs to Bill @status.DifferenceWeightKg.ToString("N2") KG</span>
+                                    }
+                                    else if (status.OverBilled)
+                                    {
+                                        <span class="badge bg-warning">Over Billed by @Math.Abs(status.DifferenceWeightKg).ToString("N2") KG</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Balanced</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-warning">
+            <h5>No billing data available</h5>
+            <p>Start by creating sales orders and then add billing records to track billing status.</p>
+        </div>
+    }
+</div>

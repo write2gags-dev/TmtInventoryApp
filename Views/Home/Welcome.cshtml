@@ -1,0 +1,184 @@
+@{
+    Layout = null; // No layout for the landing page to keep it clean and focused
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome - TMT Inventory Management</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #ec4899;
+            --dark: #0f172a;
+            --light: #f8fafc;
+            --glass: rgba(255, 255, 255, 0.9);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #172554 100%);
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            overflow: hidden;
+        }
+
+        .welcome-container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            width: 100%;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .bg-circles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .circle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(79, 70, 229, 0.2) 0%, transparent 70%);
+            filter: blur(40px);
+            animation: float 20s infinite alternate;
+        }
+
+        @@keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(100px, 100px) scale(1.2); }
+        }
+
+        .card {
+            background: var(--glass);
+            border: none;
+            border-radius: 24px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+            cursor: pointer;
+            height: 100%;
+            color: var(--dark);
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+
+        .portal-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .badge-premium {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 2rem;
+            display: inline-block;
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            letter-spacing: -1px;
+        }
+
+        p.lead {
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 3rem;
+        }
+
+        .card-title {
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .card-text {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        a.stretched-link:after {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-circles">
+        <div class="circle" style="width: 500px; height: 500px; top: -100px; left: -100px;"></div>
+        <div class="circle" style="width: 400px; height: 400px; bottom: -100px; right: -100px; animation-delay: -5s;"></div>
+    </div>
+
+    <div class="welcome-container">
+        <span class="badge-premium">Enterprise Solution</span>
+        <h1>TMT Inventory System</h1>
+        <p class="lead">Select your portal to continue with the management system</p>
+
+        <div class="row g-4 mt-2">
+            <!-- Distributor Portal -->
+            <div class="col-md-6">
+                <div class="card p-4">
+                    <div class="portal-icon">
+                        <i class="bi bi-buildings-fill"></i>
+                    </div>
+                    <h3 class="card-title">Distributor Portal</h3>
+                    <p class="card-text">Manage overall stock, dealers, billing, and distribution network. For administrative and owner use.</p>
+                    <a href="@Url.Action("Login", "Account")" class="stretched-link"></a>
+                </div>
+            </div>
+
+            <!-- Dealer Portal -->
+            <div class="col-md-6">
+                <div class="card p-4">
+                    <div class="portal-icon">
+                        <i class="bi bi-person-workspace"></i>
+                    </div>
+                    <h3 class="card-title">Dealer Portal</h3>
+                    <p class="card-text">Manage your internal stock, end-customers, sales, and localized inventory. For dealer use only.</p>
+                    <a href="/DealerPortal/DealerAuth/Login" class="stretched-link"></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-5">
+            <p class="text-white-50 small">&copy; @DateTime.Now.Year TMT Inventory Management System. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

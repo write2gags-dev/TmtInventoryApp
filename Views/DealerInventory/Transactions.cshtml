@@ -1,0 +1,96 @@
+@model TmtInventoryApp.Models.DealerPortal.DealerInventoryItem
+
+@{
+    ViewData["Title"] = "Stock History";
+    Layout = "~/Views/Shared/_DealerPortalLayout.cshtml";
+}
+
+<div class="row align-items-center mb-4">
+    <div class="col">
+        <h2 class="page-title">Stock History</h2>
+        <p class="text-muted mb-0">@Model.ProductBrand?.ProductCategory?.Name - @Model.ProductBrand?.Name</p>
+    </div>
+    <div class="col-auto">
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to Inventory
+        </a>
+    </div>
+</div>
+
+<div class="card table-card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Reference</th>
+                        <th>Quantity</th>
+                        <th>Notes</th>
+                        <th>Recorded By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Transactions != null && Model.Transactions.Any())
+                    {
+                        foreach (var txn in Model.Transactions.OrderByDescending(t => t.TransactionDate))
+                        {
+                            <tr>
+                                <td>@txn.TransactionDate.ToString("dd MMM yyyy HH:mm")</td>
+                                <td>
+                                    @switch (txn.TransactionType)
+                                    {
+                                        case TmtInventoryApp.Models.DealerPortal.TransactionTypes.StockIn:
+                                            <span class="badge bg-success">Stock In</span>
+                                            break;
+                                        case TmtInventoryApp.Models.DealerPortal.TransactionTypes.StockOut:
+                                            <span class="badge bg-primary">Sale</span>
+                                            break;
+                                        case TmtInventoryApp.Models.DealerPortal.TransactionTypes.Adjustment:
+                                            <span class="badge bg-warning text-dark">Adjustment</span>
+                                            break;
+                                        case TmtInventoryApp.Models.DealerPortal.TransactionTypes.Return:
+                                            <span class="badge bg-info">Return</span>
+                                            break;
+                                        default:
+                                            <span class="badge bg-secondary">@txn.TransactionType</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @if(txn.TransactionType == TmtInventoryApp.Models.DealerPortal.TransactionTypes.StockOut && txn.CustomerSale != null)
+                                    {
+                                        <a href="/DealerPortal/Sales/Details/@txn.CustomerSaleId">Sale #@txn.CustomerSaleId</a>
+                                    }
+                                    else
+                                    {
+                                        @txn.ReferenceNumber
+                                    }
+                                </td>
+                                <td class="fw-bold">
+                                    @if (txn.TransactionType == TmtInventoryApp.Models.DealerPortal.TransactionTypes.StockOut || (txn.Quantity < 0 && txn.TransactionType == TmtInventoryApp.Models.DealerPortal.TransactionTypes.Adjustment))
+                                    {
+                                        <span class="text-danger">@txn.Quantity</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-success">+@txn.Quantity</span>
+                                    }
+                                </td>
+                                <td>@txn.Notes</td>
+                                <td>@txn.CreatedBy</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">No transactions found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

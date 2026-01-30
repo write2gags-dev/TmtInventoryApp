@@ -1,0 +1,113 @@
+@model IEnumerable<TmtInventoryApp.Models.StockEntry>
+
+@{
+    ViewData["Title"] = "Manage Stock";
+}
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1>Manage Stock</h1>
+        <p class="text-muted">Add, edit, or delete stock entries. View current stock levels on the <a asp-controller="Home" asp-action="Index">Dashboard</a>.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Stock Management Actions</h5>
+            </div>
+            <div class="card-body">
+                <a asp-action="Create" class="btn btn-primary btn-lg">
+                    <i class="bi bi-plus-circle"></i> Add New Stock Entry
+                </a>
+                <a asp-action="History" class="btn btn-info btn-lg ms-2 text-white">
+                    <i class="bi bi-clock-history"></i> View Addition History
+                </a>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-lg ms-2">
+                    <i class="bi bi-bar-chart"></i> View Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">All Stock Entries</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Diameter (mm)</th>
+                                <th>Quantity (Bundles)</th>
+                                <th>Total Weight</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var item in Model) {
+                            <tr>
+                                <td>
+                                    @((item.TmtVariant != null && item.TmtVariant.Diameter > 0) ? item.TmtVariant.Diameter + " mm" : item.TmtVariant?.DisplayName)
+                                </td>
+                                <td>
+                                    @Html.DisplayFor(modelItem => item.QuantityBundles)
+                                </td>
+                                <td>
+                                    @if (item.WeightTons.HasValue && item.WeightTons.Value > 0)
+                                    {
+                                        @:@((item.WeightTons.Value * 1000).ToString("N2")) kg
+                                        <span class="text-muted small">(@item.WeightTons.Value.ToString("N3") Tons)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning">
+                                            <i class="bi bi-exclamation-triangle"></i> Not set
+                                        </span>
+                                        @if (Context.Session.GetString("Role") == "Admin")
+                                        {
+                                            <small class="text-muted d-block">Click Edit to add weight</small>
+                                        }
+                                    }
+                                </td>
+                                <td>
+                                    @{
+                                        var userRole = Context.Session.GetString("Role");
+                                        var isAdmin = userRole == "Admin";
+                                        var canEdit = isAdmin || item.CreatedAt >= DateTime.Now.AddHours(-24);
+                                    }
+                                    @if (canEdit)
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                        @if (!isAdmin && item.CreatedAt >= DateTime.Now.AddHours(-24))
+                                        {
+                                            <span class="text-muted small ms-2">(editable for @((int)(24 - (DateTime.Now - item.CreatedAt).TotalHours))h)</span>
+                                        }
+                                        @if (isAdmin)
+                                        {
+                                            <span class="badge bg-success ms-2">Admin Access</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">
+                                            <i class="bi bi-lock"></i> Locked (contact admin)
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

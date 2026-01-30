@@ -1,0 +1,274 @@
+@model TmtInventoryApp.Models.SalesOrder
+
+@{
+    ViewData["Title"] = "Order Details";
+}
+
+<h1>Order #@Model.Id - @Model.Dealer?.Name</h1>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Add Items (Matrix)</h5>
+        </div>
+        <div class="card-body">
+            @{
+                var variants = ViewData["TmtVariants"] as List<TmtInventoryApp.Models.TmtVariant> ?? new();
+                var flatVariants = new List<TmtInventoryApp.Models.TmtVariant>();
+                var piecesMap = ViewData["PiecesPerBundle"] as Dictionary<int,int> ?? new();
+                if (variants != null)
+                {
+                    var bars = variants.Where(v => v.Diameter > 0).ToList();
+                    var wire = variants.Where(v => (!string.IsNullOrWhiteSpace(v.Name) && v.Name.IndexOf("wire", StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+                    var nail = variants.Where(v => (!string.IsNullOrWhiteSpace(v.Name) && v.Name.IndexOf("nail", StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+                    var ring = variants.Where(v => (!string.IsNullOrWhiteSpace(v.Name) && v.Name.IndexOf("ring", StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
+                    var others = variants.Except(bars).Except(wire).Except(nail).Except(ring).ToList();
+
+                    var groups = new List<(string Title, List<TmtInventoryApp.Models.TmtVariant> Items)>();
+                    if (bars.Any()) groups.Add(("08-20 MM", bars));
+                    if (wire.Any()) groups.Add(("WIRE", wire));
+                    if (nail.Any()) groups.Add(("Nail (bAG)", nail));
+                    if (ring.Any()) groups.Add(("Ring", ring));
+                    if (others.Any()) groups.Add(("Misc", others));
+
+                    foreach (var g in groups) flatVariants.AddRange(g.Items);
+
+                    <form id="sales-matrix-form" asp-action="AddItems" method="post">
+                        <input type="hidden" name="salesOrderId" value="@Model.Id" />
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        @foreach (var g in groups)
+                                        {
+                                            <th colspan="@g.Items.Count" class="text-center">@g.Title</th>
+                                        }
+                                    </tr>
+                                    <tr>
+                                        <th>Bundles Sold</th>
+                                        @for (int i = 0; i < flatVariants.Count; i++)
+                                        {
+                                            <th>@(flatVariants[i].Diameter > 0 ? flatVariants[i].Diameter + " mm" : flatVariants[i].DisplayName)</th>
+                                        }
+                                        
+                                    </tr>
+                                    <tr>
+                                        <th>Weight/Bundle (KG)</th>
+                                        @for (int i = 0; i < flatVariants.Count; i++)
+                                        {
+                                            <th class="text-center">
+                                                <div class="d-flex align-items-center justify-content-center">
+                                                    <span class="bundle-weight-display" data-variant-id="@flatVariants[i].Id">@(flatVariants[i].PredefinedBundleWeight.ToString("0.000"))</span>
+                                                    @if (Context.Session.GetString("Role") == UserRoles.Admin)
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-link ms-2 edit-bundle-weight" data-variant-id="@flatVariants[i].Id">Edit</button>
+                                                    }
+                                                </div>
+                                            </th>
+                                        }
+                                    </tr>
+                                    <tr>
+                                        <th>Enter Number</th>
+                                        @for (int i = 0; i < flatVariants.Count; i++)
+                                        {
+                                            var pieces = piecesMap.ContainsKey(flatVariants[i].Id) ? piecesMap[flatVariants[i].Id] : 0;
+                                            var savedItem = Model.Items?.FirstOrDefault(it => it.TmtVariantId == flatVariants[i].Id);
+                                            var bundleValue = savedItem?.QuantityBundles ?? 0;
+                                            <th>
+                                                <input type="hidden" name="Items[@i].TmtVariantId" value="@flatVariants[i].Id" />
+                                                <input type="number" name="Items[@i].QuantityBundles" class="form-control sales-bundles" data-index="@i" data-pieces="@pieces" data-weightperrod="@flatVariants[i].WeightPerRod" data-bundleweight="@flatVariants[i].PredefinedBundleWeight" data-variantid="@flatVariants[i].Id" min="0" value="@bundleValue" />
+                                            </th>
+                                        }
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Loose Pieces</td>
+                                        @for (int i = 0; i < flatVariants.Count; i++)
+                                        {
+                                            var savedItem = Model.Items?.FirstOrDefault(it => it.TmtVariantId == flatVariants[i].Id);
+                                            var looseValue = savedItem?.LoosePieces ?? 0;
+                                            <td>
+                                                <input type="number" name="Items[@i].LoosePieces" class="form-control sales-loose" data-index="@i" data-pieces="@(piecesMap.ContainsKey(flatVariants[i].Id) ? piecesMap[flatVariants[i].Id] : 0)" data-weightperrod="@flatVariants[i].WeightPerRod" data-bundleweight="@flatVariants[i].PredefinedBundleWeight" data-variantid="@flatVariants[i].Id" min="0" value="@looseValue" />
+                                            </td>
+                                        }
+                                        
+                                    </tr>
+                                    <tr>
+                                        <td>Weight Sold (KG)</td>
+                                        @for (int i = 0; i < flatVariants.Count; i++)
+                                        {
+                                            var savedItem = Model.Items?.FirstOrDefault(it => it.TmtVariantId == flatVariants[i].Id);
+                                            var weightValue = savedItem?.WeightKg.HasValue == true ? savedItem.WeightKg.Value.ToString("0.000") : "";
+                                            <td>
+                                                <input type="number" name="Items[@i].WeightKg" class="form-control sales-weight" data-index="@i" step="0.001" min="0" placeholder="0.000" value="@weightValue" />
+                                            </td>
+                                        }
+                                        
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-2 text-end">
+                            <strong>Total Weight Sold (KG):</strong>
+                            <span id="total-weight-display" class="ms-2">0.000</span>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success">Submit Stock Deduction</button>
+                            <button type="button" class="btn btn-secondary" onclick="window.history.back();">Cancel</button>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                    <div class="alert alert-warning">No variants available.</div>
+                }
+            }
+        </div>
+    </div>
+
+    @section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Auto-calc weight when bundles or loose pieces change.
+        // Calculation: if a PredefinedBundleWeight is provided, use (bundles * PredefinedBundleWeight) + (loose * WeightPerRod)
+        // otherwise fall back to (bundles * piecesPerBundle + loose) * WeightPerRod
+        function updateWeightForIndex(i) {
+            var bundlesEl = document.querySelector('input.sales-bundles[data-index="' + i + '"]');
+            var looseEl = document.querySelector('input.sales-loose[data-index="' + i + '"]');
+            if (!bundlesEl || !looseEl) return;
+            var bundles = parseInt(bundlesEl.value || 0);
+            var loose = parseInt(looseEl.value || 0);
+            var pieces = parseInt(bundlesEl.getAttribute('data-pieces') || 0);
+            var weightPerRod = parseFloat(bundlesEl.getAttribute('data-weightperrod') || 0);
+            var bundleWeight = parseFloat(bundlesEl.getAttribute('data-bundleweight') || 0);
+
+            var weight = 0;
+            if (bundleWeight > 0) {
+                weight = (bundles * bundleWeight) + (loose * weightPerRod);
+            } else {
+                var totalPieces = (bundles * pieces) + loose;
+                weight = totalPieces * weightPerRod;
+            }
+
+            var weightInput = document.querySelector('input.sales-weight[data-index="' + i + '"]');
+            if (weightInput) {
+                weightInput.value = isFinite(weight) ? weight.toFixed(3) : '';
+            }
+            // update total after recalculation
+            updateTotalWeight();
+        }
+
+        function updateTotalWeight() {
+            var total = 0;
+            document.querySelectorAll('input.sales-weight').forEach(function(w) {
+                var val = parseFloat(w.value || 0);
+                if (isFinite(val)) total += val;
+            });
+            var disp = document.getElementById('total-weight-display');
+            if (disp) disp.textContent = total.toFixed(3);
+        }
+
+        document.addEventListener('input', function(e) {
+            if (!e.target || !e.target.classList) return;
+            if (e.target.classList.contains('sales-bundles') || e.target.classList.contains('sales-loose')) {
+                var idx = e.target.getAttribute('data-index');
+                updateWeightForIndex(idx);
+            }
+        });
+
+        // Inline editor for editing predefined bundle weight per variant
+        function openBundleEditor(variantId, spanEl) {
+            // prevent multiple editors
+            if (spanEl.nextElementSibling && spanEl.nextElementSibling.classList && spanEl.nextElementSibling.classList.contains('bundle-editor')) return;
+
+            var current = parseFloat(spanEl.textContent || '0') || 0;
+            var editor = document.createElement('span');
+            editor.className = 'bundle-editor ms-2';
+
+            var input = document.createElement('input');
+            input.type = 'number';
+            input.step = '0.001';
+            input.min = '0';
+            input.value = current.toFixed(3);
+            input.className = 'form-control form-control-sm d-inline-block';
+            input.style.width = '90px';
+
+            var saveBtn = document.createElement('button');
+            saveBtn.type = 'button';
+            saveBtn.className = 'btn btn-sm btn-primary ms-2';
+            saveBtn.textContent = 'Save';
+
+            var cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'btn btn-sm btn-secondary ms-1';
+            cancelBtn.textContent = 'Cancel';
+
+            editor.appendChild(input);
+            editor.appendChild(saveBtn);
+            editor.appendChild(cancelBtn);
+
+            spanEl.parentNode.appendChild(editor);
+
+            cancelBtn.addEventListener('click', function() {
+                editor.remove();
+            });
+
+            saveBtn.addEventListener('click', function() {
+                var newWeight = parseFloat(input.value || '0') || 0;
+                
+                // Show loading state
+                saveBtn.disabled = true;
+                cancelBtn.disabled = true;
+                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>...';
+                
+                // Persist to server
+                fetch('@Url.Action("UpdateBundleWeights", "Sales")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    },
+                    body: JSON.stringify([{
+                        VariantId: parseInt(variantId),
+                        Weight: newWeight,
+                        UsePredefinedBundleWeight: true
+                    }])
+                })
+                .then(response => {
+                    if (response.ok) {
+                        // Success - reload page to ensure all totals and server-side state are perfectly in sync
+                        window.location.reload();
+                    } else {
+                        alert('Failed to save weight. Please check console for details.');
+                        saveBtn.disabled = false;
+                        cancelBtn.disabled = false;
+                        saveBtn.textContent = 'Save';
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error saving weight: ' + err.message);
+                    saveBtn.disabled = false;
+                    cancelBtn.disabled = false;
+                    saveBtn.textContent = 'Save';
+                });
+            });
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target) return;
+            if (e.target.classList && e.target.classList.contains('edit-bundle-weight')) {
+                var variantId = e.target.getAttribute('data-variant-id');
+                var span = document.querySelector('span.bundle-weight-display[data-variant-id="' + variantId + '"]');
+                if (span) openBundleEditor(variantId, span);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('input.sales-bundles').forEach(function(el) { updateWeightForIndex(el.getAttribute('data-index')); });
+            // ensure total reflects any prefilled saved values
+            updateTotalWeight();
+        });
+    </script>
+}

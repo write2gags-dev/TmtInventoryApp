@@ -1,0 +1,167 @@
+@using TmtInventoryApp.Models.ViewModels
+@model ReconciliationAnalysisViewModel
+
+@{
+    ViewData["Title"] = "Business Health Analysis";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Business Health: Stock Analysis</h3>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Summary
+        </a>
+    </div>
+
+    @if (Model.Variants.Count == 0)
+    {
+        <div class="alert alert-info">No stock data available for analysis.</div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="m-0">Stock Reconciliation Consolidated View</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover m-0 text-center align-middle">
+                        <thead class="table-dark text-nowrap">
+                            <tr>
+                                <th class="text-start bg-secondary align-middle" style="min-width: 150px;">Diameter / Variant</th>
+                                <th class="align-middle" style="min-width: 120px;">Kolkata Virtual Stock<br><small>(Balance)</small></th>
+                                <th class="align-middle">Total Sold</th>
+                                <th class="align-middle">Total Billed</th>
+                                <th class="align-middle">Net Obligation<br><small>(Billed - Sold)</small></th>
+                                <th class="bg-warning text-dark align-middle" style="min-width: 140px;">Min Physical Req.<br><small>(Virtual + Net)</small></th>
+                                <th class="align-middle">Current Physical</th>
+                                <th class="align-middle" style="min-width: 150px;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var variant in Model.Variants)
+                            {
+                                <tr>
+                                    <!-- Variant Name (Row Header) -->
+                                    <td class="text-start fw-bold fs-5">@variant.VariantName</td>
+                                    
+                                    <!-- Virtual Stock -->
+                                    <td class="text-primary">@variant.VirtualStockBalanceKg.ToString("N0")</td>
+                                    
+                                    <!-- Sales Data -->
+                                    <td>@variant.SumSoldKg.ToString("N0")</td>
+                                    <td>@variant.SumBilledKg.ToString("N0")</td>
+                                    
+                                    <!-- Net Obligation -->
+                                    <td class="@(variant.SumOverUnderKg > 0 ? "text-warning fw-bold" : "")">
+                                        @variant.SumOverUnderKg.ToString("N0")
+                                    </td>
+                                    
+                                    <!-- Min Physical Req -->
+                                    <td class="table-warning fw-bold fs-5 text-dark">
+                                        @variant.MinPhysicalStockKg.ToString("N0")
+                                    </td>
+                                    
+                                    <!-- Current Physical -->
+                                    <td>@variant.CurrentPhysicalStockKg.ToString("N0")</td>
+                                    
+                                    <!-- Status -->
+                                    <td>
+                                        @if (variant.PhysicalStockDifferenceKg < -10)
+                                        {
+                                            <span class="badge bg-danger p-2 w-100">Short: @Math.Abs(variant.PhysicalStockDifferenceKg).ToString("N0")</span>
+                                        }
+                                        else if (variant.PhysicalStockDifferenceKg > 10)
+                                        {
+                                            <span class="badge bg-success p-2 w-100">Surplus: @variant.PhysicalStockDifferenceKg.ToString("N0")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary p-2 w-100">Balanced</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-secondary mt-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="m-0">Overall Totals by Variant</h5>
+                <small class="text-light-50">Sold vs Billed vs Physical vs Surplus</small>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover m-0 text-center align-middle">
+                        <thead class="table-light text-nowrap">
+                            <tr>
+                                <th class="text-start" style="min-width: 150px;">Diameter / Variant</th>
+                                <th>Opening Bal. (KG)</th>
+                                <th>Sold (KG)</th>
+                                <th>Billed (KG)</th>
+                                <th>Net (Billed - Sold - Open)</th>
+                                <th>Owed to Dealers (KG)</th>
+                                <th>Physical Stock (KG)</th>
+                                <th>Net Available After Obligations (KG)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var variant in Model.Variants)
+                            {
+                                <tr>
+                                    <td class="text-start fw-bold">@variant.VariantName</td>
+                                    <td class="text-muted">@variant.SumOpeningBalanceKg.ToString("N0")</td>
+                                    <td>@variant.SumSoldKg.ToString("N0")</td>
+                                    <td>@variant.SumBilledKg.ToString("N0")</td>
+                                    <td class="@(variant.SumOverUnderKg >= 0 ? "text-danger" : "text-success")">
+                                        @variant.SumOverUnderKg.ToString("N0")
+                                    </td>
+                                    <td>
+                                        @if (variant.OwedToDealersKg > 0)
+                                        {
+                                            <span class="badge bg-danger">@variant.OwedToDealersKg.ToString("N0")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>@variant.CurrentPhysicalStockKg.ToString("N0")</td>
+                                    <td class="@(variant.NetAvailableAfterObligationsKg >= 0 ? "text-success fw-bold bg-success-subtle" : "text-danger fw-bold bg-danger-subtle")">
+                                        @variant.NetAvailableAfterObligationsKg.ToString("N0")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-dark">
+                            @{
+                                var totalOpening = Model.Variants.Sum(v => v.SumOpeningBalanceKg);
+                                var totalSold = Model.Variants.Sum(v => v.SumSoldKg);
+                                var totalBilled = Model.Variants.Sum(v => v.SumBilledKg);
+                                var totalNet = Model.Variants.Sum(v => v.SumOverUnderKg);
+                                var totalOwed = Model.Variants.Sum(v => v.OwedToDealersKg);
+                                var totalPhysical = Model.Variants.Sum(v => v.CurrentPhysicalStockKg);
+                                var totalAvailable = Model.Variants.Sum(v => v.NetAvailableAfterObligationsKg);
+                            }
+                            <tr>
+                                <th class="text-start">Grand Total</th>
+                                <th>@totalOpening.ToString("N0")</th>
+                                <th>@totalSold.ToString("N0")</th>
+                                <th>@totalBilled.ToString("N0")</th>
+                                <th class="@(totalNet >= 0 ? "text-danger" : "text-success")">@totalNet.ToString("N0")</th>
+                                <th>
+                                    @if(totalOwed > 0) { <span class="badge bg-danger">@totalOwed.ToString("N0")</span> } else { <span>0</span> }
+                                </th>
+                                <th>@totalPhysical.ToString("N0")</th>
+                                <th class="@(totalAvailable >= 0 ? "text-success fw-bold" : "text-danger fw-bold")">@totalAvailable.ToString("N0")</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>

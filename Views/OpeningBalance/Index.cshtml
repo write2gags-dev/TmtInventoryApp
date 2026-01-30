@@ -1,0 +1,156 @@
+@model IEnumerable<TmtInventoryApp.Models.OpeningDealerBalance>
+
+@{
+    ViewData["Title"] = "Opening Dealer Balances";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="bi bi-calendar-check"></i> Opening Dealer Balances</h2>
+                <p class="text-muted">Historical dealer balances before system implementation</p>
+            </div>
+            @if (Context.Session.GetString("Role") == UserRoles.Admin)
+            {
+                <div>
+                    <a asp-action="BulkEntry" class="btn btn-success">
+                        <i class="bi bi-table"></i> Add Opening Balances
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-table"></i> All Opening Balances</h5>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> No opening balances entered yet. Click "Add Opening Balance" to get started.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-striped align-middle">
+                        <thead class="table-dark">
+                            <tr class="text-center">
+                                <th>Dealer</th>
+                                <th>Variant</th>
+                                <th>Opening Balance (kg)</th>
+                                <th>Status</th>
+                                <th>As of Date</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr class="text-center">
+                                    <td class="text-start">
+                                        <strong>@item.Dealer?.Name</strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@item.TmtVariant?.DisplayName</span>
+                                    </td>
+                                    <td>
+                                        <strong class="@(item.OpeningBalanceKg >= 0 ? "text-success" : "text-danger")">
+                                            @item.OpeningBalanceKg.ToString("N2")
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        @if (item.OpeningBalanceKg > 0)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-down-circle"></i> Dealer owes you
+                                            </span>
+                                        }
+                                        else if (item.OpeningBalanceKg < 0)
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-arrow-up-circle"></i> You owe dealer
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Balanced</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <small>@item.AsOfDate.ToShortDateString()</small>
+                                    </td>
+                                    <td class="text-start">
+                                        <small class="text-muted">@(item.Notes ?? "-")</small>
+                                    </td>
+                                    <td>
+                                        @if (Context.Session.GetString("Role") == UserRoles.Admin)
+                                        {
+                                            <div class="btn-group btn-group-sm" role="group">
+                                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Locked</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr class="fw-bold text-center">
+                                <td colspan="2" class="text-start">TOTALS</td>
+                                <td>
+                                    <strong class="@(Model.Sum(m => m.OpeningBalanceKg) >= 0 ? "text-success" : "text-danger")">
+                                        @Model.Sum(m => m.OpeningBalanceKg).ToString("N2") kg
+                                    </strong>
+                                </td>
+                                <td colspan="4">
+                                    @if (Model.Sum(m => m.OpeningBalanceKg) > 0)
+                                    {
+                                        <span class="text-success">Overall: Dealers owe you @Model.Sum(m => m.OpeningBalanceKg).ToString("N2") kg</span>
+                                    }
+                                    else if (Model.Sum(m => m.OpeningBalanceKg) < 0)
+                                    {
+                                        <span class="text-danger">Overall: You owe dealers @Math.Abs(Model.Sum(m => m.OpeningBalanceKg)).ToString("N2") kg</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-secondary">Overall: Balanced</span>
+                                    }
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="alert alert-light mt-3">
+                    <h6><i class="bi bi-info-circle-fill"></i> Understanding Opening Balances:</h6>
+                    <ul class="mb-0 small">
+                        <li><strong>Positive (+)</strong>: Dealer owes you weight (you gave more stock than you billed historically)</li>
+                        <li><strong>Negative (-):</strong> You owe dealer weight (you billed more than you actually gave historically)</li>
+                        <li>These balances are automatically included in all reconciliation calculations</li>
+                    </ul>
+                </div>
+            }
+        </div>
+    </div>
+</div>

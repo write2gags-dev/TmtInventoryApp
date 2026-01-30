@@ -1,0 +1,257 @@
+@model TmtInventoryApp.Models.ViewModels.WeightStatisticsViewModel
+
+@{
+    ViewData["Title"] = "Weight Variance Analysis";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-calculator"></i> Weight Variance Analysis</h2>
+        <a asp-action="Index" class="btn btn-outline-secondary">Back to Business Health</a>
+    </div>
+
+    <!-- Combined Summary Table (All Variants) -->
+    <div class="card mb-5 shadow border-primary">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-speedometer2"></i> Overall Summary Dashboard</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0 align-middle">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Variant</th>
+                            <th class="text-center">Purchased (Bundles)</th>
+                            <th class="text-center">Sold (Bundles)</th>
+                            <th class="text-end">Avg Purchase Wt (kg)</th>
+                            <th class="text-end">Total Purchase Wt (kg)</th>
+                            <th class="text-end">Total Sold Wt (kg)</th>
+                            <th class="text-end">Expected Cost Wt (kg)</th>
+                            <th class="text-end">Net Saving/Loss (kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var v in Model.Variants)
+                        {
+                            <tr>
+                                <td class="fw-bold">@v.VariantName</td>
+                                <td class="text-center">@v.TotalPurchasedBundles</td>
+                                <td class="text-center">@v.TotalSoldBundles</td>
+                                <td class="text-end">@v.AvgPurchaseWeightPerBundleKg.ToString("0.##")</td>
+                                <td class="text-end">@v.TotalPurchasedWeightKg.ToString("N0")</td>
+                                <td class="text-end fw-bold">@v.TotalSoldWeightKg.ToString("N0")</td>
+                                <td class="text-end text-muted">@v.ExpectedSoldWeightKg.ToString("N0")</td>
+                                <td class="text-end">
+                                    @if (v.WeightSavingKg >= 0)
+                                    {
+                                        <span class="badge bg-success">+@v.WeightSavingKg.ToString("N2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">@v.WeightSavingKg.ToString("N2")</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-dark">
+                        <tr class="fw-bold">
+                            <td>GRAND TOTAL</td>
+                            <td class="text-center">@Model.Variants.Sum(x => x.TotalPurchasedBundles)</td>
+                            <td class="text-center">@Model.Variants.Sum(x => x.TotalSoldBundles)</td>
+                            <td class="text-end">-</td>
+                            <td class="text-end">@Model.Variants.Sum(x => x.TotalPurchasedWeightKg).ToString("N0")</td>
+                            <td class="text-end">@Model.Variants.Sum(x => x.TotalSoldWeightKg).ToString("N0")</td>
+                            <td class="text-end">@Model.Variants.Sum(x => x.ExpectedSoldWeightKg).ToString("N0")</td>
+                            <td class="text-end">
+                                @{
+                                    var totalSaving = Model.Variants.Sum(x => x.WeightSavingKg);
+                                }
+                                @if (totalSaving >= 0)
+                                {
+                                    <span class="text-success">+@totalSaving.ToString("N2")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-danger">@totalSaving.ToString("N2")</span>
+                                }
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dealer Wise Analysis -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="bi bi-people-fill"></i> Dealer Reconciliation Analysis</h4>
+                    
+                    <!-- Dealer Selector Form -->
+                    <form method="get" class="d-flex align-items-center" style="min-width: 300px;">
+                        <select name="selectedDealerId" class="form-select form-select-sm me-2" onchange="this.form.submit()">
+                            <option value="">-- Select Dealer for Detailed View --</option>
+                            @foreach (var dealer in Model.Dealers)
+                            {
+                                <!option value="@dealer.DealerId" @(Model.SelectedDealerId == dealer.DealerId ? "selected" : "")>@dealer.DealerName</!option>
+                            }
+                        </select>
+                        @if (Model.SelectedDealerId.HasValue)
+                        {
+                            <a asp-action="WeightStats" class="btn btn-sm btn-outline-light"><i class="bi bi-x-circle"></i> Clear</a>
+                        }
+                    </form>
+                </div>
+                
+                <!-- Detailed Variant View for Selected Dealer -->
+                @if (Model.SelectedDealerId.HasValue && Model.SelectedDealerDetails.Any())
+                {
+                    <div class="card-body bg-light border-bottom">
+                         <div class="alert alert-info border-info shadow-sm">
+                            <h5 class="alert-heading fw-bold"><i class="bi bi-info-circle-fill"></i> Detailed Analysis: @Model.Dealers.FirstOrDefault(d => d.DealerId == Model.SelectedDealerId)?.DealerName</h5>
+                            <hr>
+                            <div class="table-responsive bg-white rounded">
+                                <table class="table table-bordered table-sm mb-0">
+                                    <thead class="table-secondary">
+                                        <tr>
+                                            <th>Diameter / Variant</th>
+                                            <th class="text-end">Sold Weight (kg)</th>
+                                            <th class="text-end">Billed Weight (kg)</th>
+                                            <th class="text-end">Net Difference (kg)</th>
+                                            <th class="text-center">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var detail in Model.SelectedDealerDetails)
+                                        {
+                                            <tr>
+                                                <td class="fw-bold">@detail.VariantName</td>
+                                                <td class="text-end">@detail.SoldWeightKg.ToString("N0")</td>
+                                                <td class="text-end">@detail.BilledWeightKg.ToString("N0")</td>
+                                                <td class="text-end fw-bold">
+                                                    @if (detail.NetDifferenceKg > 0)
+                                                    {
+                                                        <span class="text-danger">+@detail.NetDifferenceKg.ToString("N0")</span>
+                                                    }
+                                                    else if (detail.NetDifferenceKg < 0)
+                                                    {
+                                                        <span class="text-warning">@detail.NetDifferenceKg.ToString("N0")</span>
+                                                    }
+                                                    else 
+                                                    {
+                                                        <span class="text-muted">-</span>
+                                                    }
+                                                </td>
+                                                <td class="text-center">
+                                                    @if (Math.Abs(detail.NetDifferenceKg) > 5)
+                                                    {
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Check</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-success-subtle text-success">OK</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped align-middle mb-0">
+                            <thead class="bg-secondary text-white">
+                                <tr>
+                                    <th>Dealer Name</th>
+                                    <th class="text-end">Total Sold Weight (kg)</th>
+                                    <th class="text-end">Total Billed Weight (kg)</th>
+                                    <th class="text-end">Net Difference (kg)</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var dealer in Model.Dealers)
+                                {
+                                    <tr class="@(Model.SelectedDealerId == dealer.DealerId ? "table-active border border-primary border-2" : "")">
+                                        <td class="fw-bold text-primary">@dealer.DealerName</td>
+                                        <td class="text-end">@dealer.TotalSoldWeightKg.ToString("N0")</td>
+                                        <td class="text-end">@dealer.TotalBilledWeightKg.ToString("N0")</td>
+                                        <td class="text-end fw-bold">
+                                            @if (dealer.NetDifferenceKg > 0)
+                                            {
+                                                <span class="text-danger" title="Under Billed (Goods sent but not billed)">+@dealer.NetDifferenceKg.ToString("N0")</span>
+                                            }
+                                            else if (dealer.NetDifferenceKg < 0)
+                                            {
+                                                <span class="text-warning" title="Over Billed (Billed but goods not sent)">@dealer.NetDifferenceKg.ToString("N0")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            @if (dealer.NetDifferenceKg > 10)
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Under Billed</span>
+                                            }
+                                            else if (dealer.NetDifferenceKg < -10)
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Over Billed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success-subtle text-success">Balanced</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot class="table-dark fw-bold fs-5">
+                                <tr>
+                                    <td>OVERALL TOTAL</td>
+                                    <td class="text-end">@Model.Dealers.Sum(d => d.TotalSoldWeightKg).ToString("N0")</td>
+                                    <td class="text-end">@Model.Dealers.Sum(d => d.TotalBilledWeightKg).ToString("N0")</td>
+                                    <td class="text-end">
+                                        @{
+                                            var netTotal = Model.Dealers.Sum(d => d.NetDifferenceKg);
+                                        }
+                                        @if (netTotal > 0)
+                                        {
+                                            <span class="text-danger">+@netTotal.ToString("N0")</span>
+                                        }
+                                        else if (netTotal < 0)
+                                        {
+                                            <span class="text-warning">@netTotal.ToString("N0")</span>
+                                        }
+                                        else
+                                        {
+                                            <span>-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (Math.Abs(netTotal) > 10)
+                                        {
+                                            <span class="badge bg-danger">ACTION REQUIRED</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">HEALTHY</span>
+                                        }
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

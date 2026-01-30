@@ -1,0 +1,113 @@
+@model IEnumerable<TmtInventoryApp.Models.SalesOrder>
+
+@{
+    ViewData["Title"] = "Past 1 Week Sales Orders";
+    var oneWeekAgo = DateTime.Now.Date.AddDays(-7);
+    // Filter orders from the last 7 days
+    var recentOrders = Model.Where(o => o.OrderDate >= oneWeekAgo).OrderByDescending(o => o.OrderDate).ToList();
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="mb-0">Past 1 Week Sales Orders (Till Today)</h2>
+            <small class="text-muted">@oneWeekAgo.ToString("dd MMM") - @DateTime.Now.ToString("dd MMM yyyy")</small>
+        </div>
+        <div>
+            <a asp-controller="Sales" asp-action="Create" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg"></i> New Order
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2" role="alert">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!recentOrders.Any())
+    {
+        <div class="alert alert-light border text-center">
+            <p class="mb-0 text-muted">No sales records found for the past week.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-sm table-striped table-hover" style="font-size: 0.9rem;">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 100px;">Date</th>
+                        <th>Dealer</th>
+                        <th style="width: 80px;">Order #</th>
+                        <th>Variant / Diameter</th>
+                        <th class="text-end" style="width: 100px;">Bundles</th>
+                        <th class="text-end" style="width: 100px;">Loose Pcs</th>
+                        <th class="text-end" style="width: 120px;">Weight (KG)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var order in recentOrders)
+                    {
+                        // If order has items, print a row for each item
+                        if (order.Items != null && order.Items.Any())
+                        {
+                            var sortedItems = order.Items.OrderBy(i => i.TmtVariant?.Diameter ?? 999).ToList();
+                            for (int i = 0; i < sortedItems.Count; i++)
+                            {
+                                var item = sortedItems[i];
+                                <tr>
+                                    @if (i == 0)
+                                    {
+                                        // Merge cells for Date, Dealer, Order# for the first item of the order
+                                        <td rowspan="@sortedItems.Count" class="align-middle bg-white">@order.OrderDate.ToString("dd-MMM-yyyy")</td>
+                                        <td rowspan="@sortedItems.Count" class="align-middle bg-white fw-bold">@order.Dealer?.Name</td>
+                                        <td rowspan="@sortedItems.Count" class="align-middle bg-white text-center">
+                                            <a asp-controller="Sales" asp-action="Details" asp-route-id="@order.Id" class="text-decoration-none">#@order.Id</a>
+                                        </td>
+                                    }
+                                    <td>@item.TmtVariant?.DisplayName</td>
+                                    <td class="text-end">@item.QuantityBundles</td>
+                                    <td class="text-end">@item.LoosePieces</td>
+                                    <td class="text-end fw-bold">@((item.WeightKg ?? 0).ToString("N3"))</td>
+                                </tr>
+                            }
+                            // Optional: Subtotal row for the order? 
+                            // User asked for "Excel format", usually raw data is better, but a subtotal line helps readability.
+                            // Let's add a subtle subtotal row
+                            <tr class="table-group-divider border-bottom-2">
+                                <td colspan="4" class="text-end text-muted fst-italic bg-light py-1">Total for Order #@order.Id:</td>
+                                <td class="text-end bg-light py-1"><strong>@order.Items.Sum(x => x.QuantityBundles)</strong></td>
+                                <td class="text-end bg-light py-1"><strong>@order.Items.Sum(x => x.LoosePieces)</strong></td>
+                                <td class="text-end bg-light py-1 text-primary"><strong>@order.Items.Sum(x => x.WeightKg ?? 0).ToString("N3")</strong></td>
+                            </tr>
+                        }
+                        else
+                        {
+                            // Empty order
+                            <tr>
+                                <td class="align-middle">@order.OrderDate.ToString("dd-MMM-yyyy")</td>
+                                <td class="align-middle fw-bold">@order.Dealer?.Name</td>
+                                <td class="align-middle text-center">
+                                    <a asp-controller="Sales" asp-action="Details" asp-route-id="@order.Id" class="text-decoration-none">#@order.Id</a>
+                                </td>
+                                <td colspan="4" class="text-center text-muted fst-italic">No items in this order</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+                <tfoot class="table-light border-top-2">
+                    <tr>
+                        <td colspan="4" class="text-end fw-bold">Grand Total (Past 7 Days):</td>
+                        <td class="text-end fw-bold">@recentOrders.Sum(o => o.Items?.Sum(i => i.QuantityBundles) ?? 0)</td>
+                        <td class="text-end fw-bold">@recentOrders.Sum(o => o.Items?.Sum(i => i.LoosePieces) ?? 0)</td>
+                        <td class="text-end fw-bold text-primary">@recentOrders.Sum(o => o.Items?.Sum(i => i.WeightKg) ?? 0).ToString("N3")</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    }
+</div>
