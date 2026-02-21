@@ -42,4 +42,3 @@ namespace TmtInventoryApp.Services
     }
 }
 
-//Test
